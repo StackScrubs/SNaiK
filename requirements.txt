@@ -2,3 +2,4 @@ numpy
 tqdm
 gymnasium
 pygame
+typing_extensions

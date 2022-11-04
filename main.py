@@ -9,6 +9,7 @@ while True:
     observation, reward, terminated, truncated, info = env.step(action)
     print((observation, reward, terminated, truncated, info))
     if terminated or truncated:
+        print("**RESET**")
         env.reset()
 
 env.close()
