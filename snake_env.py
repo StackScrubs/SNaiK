@@ -4,9 +4,9 @@ from snake_state import SnakeState, GridCellType
 
 DIRECTIONS = [
     (0, 1), # Up
-    (1, 0),  # Right
+    (1, 0), # Right
     (0,-1), # Down
-    (-1,0) # Left
+    (-1,0)  # Left
 ]
 DIRECTION_NONE = -1
 
@@ -38,6 +38,7 @@ class SnakeEnv(gym.Env):
         self.screen = None
         self.window = None
         self.clock = None
+        self.death_counter = 0
 
     # Snakes relative turn direction, converted to constant env direction
     def _turn(self, action):
@@ -75,6 +76,7 @@ class SnakeEnv(gym.Env):
 
     def reset(self):
         self.state = SnakeState(self.size)
+        self.death_counter += 1
 
     def _render(self):
         if self.render_mode is None:
@@ -105,6 +107,10 @@ class SnakeEnv(gym.Env):
             pygame.draw.rect(surface, square_color, rect, is_bordered)
 
         self.screen.blit(surface, (0, 0))
+
+        font = pygame.font.SysFont(None, 24)
+        img = font.render(f"Deaths: {self.death_counter}", True, 255)
+        self.screen.blit(img, (20, 20))
         
         self.clock.tick(self.metadata["render_fps"])
         pygame.display.update()
