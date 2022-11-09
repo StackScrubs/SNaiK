@@ -1,6 +1,6 @@
 from collections import deque
 from typing_extensions import Self
-from typing import Any
+from typing import Any, Tuple
 import random
 from enum import Enum
 
@@ -10,17 +10,34 @@ DIRECTIONS = [
     (0,-1), # Down
     (-1,0) # Left
 ]
-DIRECTION_NONE = -1
 
+class Random:
+    def __init__(self, seed):
+        old_state = random.getstate()
+        if seed is not None:
+            random.seed(seed)
+        self.state = random.getstate()
+        random.setstate(old_state)
+
+    def randint(self, a: int, b: int):
+        old_state = random.getstate()
+        random.setstate(self.state)
+        val = random.randint(a, b)
+        self.state = random.getstate()
+        random.setstate(old_state)
+        return val
+    
 class GridCellType(Enum):
     SNAKE = 1
     APPLE = 2
+    HEAD = 3
 
 class Grid:
-    def __init__(self, size):
+    def __init__(self, size, random):
         self.size = size
         self.__cells = [None for _ in range(size*size)]
         self.__free_cells = len(self.__cells)
+        self.__random = random
 
     def _pos_to_index(self, pos):
         return pos[0] + pos[1]*self.size
@@ -29,11 +46,15 @@ class Grid:
         return (idx % self.size, idx // self.size)
     
     def _move_cell(self, src_idx, dst_idx):
+        if src_idx == dst_idx:
+            return
         if self.__cells[dst_idx] is not None:
-            return self.__cells[dst_idx]
+            src_pos = self._index_to_pos(src_idx)
+            dst_pos = self._index_to_pos(dst_idx)
+            raise Exception(f"cannot move cell from {src_pos} to {dst_pos}: destination is occupied by {self.__cells[dst_idx]}")
         self.__cells[dst_idx] = self.__cells[src_idx]
         self.__cells[src_idx] = None
-        return None
+        return
 
     def _free_cell(self, idx):
         self.__cells[idx] = None
@@ -55,12 +76,16 @@ class Grid:
                 val = self.__cells[i].value
             yield (self._index_to_pos(i), val)
 
+    def get_cell(self, pos):
+        index = self._pos_to_index(pos)
+        return self.__cells[index]
+
     def new_cell(self, pos, val):
         index = self._pos_to_index(pos)
         return self._new_cell(index, val)
 
     def find_free_cell(self):
-        n = random.randint(0, self.__free_cells - 1)
+        n = self.__random.randint(0, self.__free_cells - 1)
         f = -1
         free_idx = -1
         for i in range(len(self.__cells)):
@@ -84,19 +109,8 @@ class GridCell:
 
     def move(self, pos):
         dst_idx = self.__grid._pos_to_index(pos)
-        collided = self.__grid._move_cell(self.__index, dst_idx)
-        if collided is not None:
-            src_pos = self._index_to_pos(self.__index)
-            raise Exception(f"cannot move cell from {src_pos} to {pos}: destination is occupied by {self.cells[dst_idx]}")
+        self.__grid._move_cell(self.__index, dst_idx)
         self.__index = dst_idx
-
-    def try_move(self, pos) -> Self | None:
-        dst_idx = self.__grid._pos_to_index(pos)
-        collided = self.__grid._move_cell(self.__index, dst_idx)
-        if collided is not None:
-            return collided
-        self.__index = dst_idx
-        return None
 
     @property
     def value(self):
@@ -115,70 +129,111 @@ class GridCell:
     def __str__(self):
         return f"GridCell({self.__value} @ {self.position})"
 
-
 class SnakeState:
-    def __init__(self, size):
-        self.grid = Grid(size)
-        self.snake = deque([self.grid.new_cell((1, 1), GridCellType.SNAKE)])
-        self.alive = True
-        self.apple = self.grid.new_cell(self.grid.find_free_cell(), GridCellType.APPLE)
-        self.direction_index = 2 # implement random
-        self.steps = 0
+    def __init__(self, size, seed):
+        self.__random = Random(seed)
+        self.__grid = Grid(size, self.__random)
+        self.__snake = deque([self.__grid.new_cell(self.__grid.find_free_cell(), GridCellType.SNAKE)])
+        self.__alive = True
+        self.__apple = self.__grid.new_cell(self.__grid.find_free_cell(), GridCellType.APPLE)
+        self.__direction_index = self.__random.randint(0, len(DIRECTIONS) - 1)
+        self.__steps = 0
+        self.__to_grow = 0
+
+    @property
+    def alive(self) -> bool:
+        return self.__alive
+
+    @property
+    def steps(self) -> int:
+        return self.__steps
+
+    @property
+    def head_position(self) -> Tuple[int, int]:
+        return self.__snake[0].position
+
+    @property
+    def tail_position(self) -> Tuple[int, int]:
+        return self.__snake[-1].position
+
+    @property
+    def apple_position(self) -> Tuple[int, int]:
+        return self.__apple.position
+
+    @property
+    def snake_length(self) -> int:
+        return len(self.__snake) + self.__to_grow
+
+    @property
+    def grid_cells(self):
+        return self.__grid.cells
 
     # Snakes relative turn direction, converted to constant env direction
     def turn_left(self):
-        self.direction_index = (self.direction_index - 1 + len(DIRECTIONS)) % len(DIRECTIONS)
+        self.__direction_index = (self.__direction_index - 1 + len(DIRECTIONS)) % len(DIRECTIONS)
     
     def turn_right(self):
-        self.direction_index = (self.direction_index + 1) % len(DIRECTIONS)
+        self.__direction_index = (self.__direction_index + 1) % len(DIRECTIONS)
 
     def update(self):
-        if not self.alive:
-            return
+        if not self.__alive:
+            return False
 
-        ate = self._move_snake()
+        ate = self._snake_step()
 
         if ate:
             self._grow_snake()
 
-        self.steps += 1
+        self.__steps += 1
         return ate
 
-    def _move_snake(self) -> bool:
-        if self.direction_index == DIRECTION_NONE: 
-            return
-
-        head = self.snake[0]
+    def _snake_step(self) -> bool:
+        head = self.__snake[0]
         new_head_pos = (
-            head.position[0] + DIRECTIONS[self.direction_index][0],
-            head.position[1] + DIRECTIONS[self.direction_index][1]
+            head.position[0] + DIRECTIONS[self.__direction_index][0],
+            head.position[1] + DIRECTIONS[self.__direction_index][1]
         )
 
-        if new_head_pos[0] < 0 or new_head_pos[0] >= self.grid.size or new_head_pos[1] < 0 or new_head_pos[1] >= self.grid.size:
-            self.alive = False
+        if new_head_pos[0] < 0 or new_head_pos[0] >= self.__grid.size or new_head_pos[1] < 0 or new_head_pos[1] >= self.__grid.size:
+            self.__alive = False
             return
 
-        tail = self.snake.pop()
-
-        for body_part in self.snake:
-            if new_head_pos == body_part:
-                self.alive = False
-
-        ate = False
-        hit = tail.try_move(new_head_pos)
-        if hit is not None and hit.value == GridCellType.APPLE:
+        tail = self.__snake[-1]
+        hit = self.__grid.get_cell(new_head_pos)
+        hit_any = hit is not None
+        ate = hit_any and hit.value == GridCellType.APPLE
+        hit_deadly = hit_any and hit is not tail and hit is not self.__apple
+        
+        if hit_deadly:
+            # restore tail
+            self.__alive = False
+            return
+        
+        if ate:
             self._respawn_apple()
-            tail.move(new_head_pos)
-            ate = True
+            self.__steps = 0
+            
+        tail = self.__snake.pop()
+        old_tail_pos = tail.position
+        head.value = GridCellType.SNAKE
+        tail.value = GridCellType.HEAD
+        tail.move(new_head_pos)
+        self.__snake.appendleft(tail)
+        
+        self._grow_step(old_tail_pos)
 
-        self.snake.appendleft(tail)
         return ate
 
     def _grow_snake(self):
-        self.snake.append(self.snake[-1])
+        self.__to_grow += 1
+
+    def _grow_step(self, old_tail_pos):
+        if self.__to_grow > 0:
+            self.__snake.append(self.__grid.new_cell(old_tail_pos, GridCellType.SNAKE))  
+            self.__to_grow -= 1  
 
     def _respawn_apple(self):
-        self.apple.move(self.grid.find_free_cell())
+        self.__apple.move(self.__grid.find_free_cell())
 
     def has_won(self):
-        return len(self.snake) >= self.grid.size**2
+        return len(self.__snake) >= self.__grid.size**2

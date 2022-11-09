@@ -1,7 +1,9 @@
 from snake_env import SnakeEnv
 import random
 
-env = SnakeEnv(render_mode='human', size=8)
+SEED = 70
+
+env = SnakeEnv(render_mode='human', size=8, seed=SEED)
 terminated, truncated = False, False
 
 while True:
@@ -9,7 +11,6 @@ while True:
     observation, reward, terminated, truncated, info = env.step(action)
     print((observation, reward, terminated, truncated, info))
     if terminated or truncated:
-        print("**RESET**")
-        env.reset()
+        env.reset(seed=SEED)
 
 env.close()
