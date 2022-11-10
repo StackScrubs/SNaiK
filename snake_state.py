@@ -133,16 +133,11 @@ class SnakeState:
         self.__alive = True
         self.__apple = self.__grid.new_free_cell(GridCellType.APPLE)
         self.__direction_index = self.__random.randint(0, len(DIRECTIONS) - 1)
-        self.__steps = 0
         self.__to_grow = 0
 
     @property
     def is_alive(self) -> bool:
         return self.__alive
-
-    @property
-    def steps(self) -> int:
-        return self.__steps
 
     @property
     def head_position(self) -> Vec2:
@@ -191,7 +186,6 @@ class SnakeState:
 
         ate = self._snake_step()
 
-        self.__steps += 1
         return ate
 
     def _snake_step(self) -> bool:
@@ -237,7 +231,6 @@ class SnakeState:
 
         if ate and not self.has_won:
             self._spawn_apple()
-            self.__steps = 0
 
         return ate
 
