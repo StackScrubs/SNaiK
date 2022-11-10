@@ -2,7 +2,7 @@ from collections import deque
 from transition import Transition
 from random import sample
 
-class ReplayMemory(object):
+class ReplayMemory():
     def __init__(self, capacity):
         self.memory = deque([],maxlen=capacity)
 
