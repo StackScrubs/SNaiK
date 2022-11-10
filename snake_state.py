@@ -2,7 +2,6 @@ from collections import deque
 from typing_extensions import Self
 from typing import Any, Tuple
 import random
-import math
 from enum import Enum
 
 DIRECTIONS = [
@@ -137,7 +136,6 @@ class SnakeState:
         self.__snake = deque([self.__grid.new_cell(self.__grid.find_free_cell(), GridCellType.SNAKE_HEAD)])
         self.__alive = True
         self.__apple = self.__grid.new_cell(self.__grid.find_free_cell(), GridCellType.APPLE)
-        self.__dist_to_apple = self._get_dist_to_apple(self.__snake[0])
         self.__direction_index = self.__random.randint(0, len(DIRECTIONS) - 1)
         self.__steps = 0
         self.__to_grow = 0
@@ -168,8 +166,7 @@ class SnakeState:
 
     @property
     def dist_to_apple(self) -> float:
-        self.__dist_to_apple = self._get_dist_to_apple(self.__snake[0])
-        return self.__dist_to_apple
+        return abs(self.__snake[0] - self.apple_position[0]) + abs(self.__snake[1] - self.apple_position[1])
     
     @property
     def grid_cells(self):
@@ -241,9 +238,6 @@ class SnakeState:
 
     def _respawn_apple(self):
         self.__apple.move(self.__grid.find_free_cell())
-        
-    def _get_dist_to_apple(self, head_pos):
-        return math.sqrt((head_pos[0] - self.apple_position[0])**2 + (head_pos[1] - self.apple_position[1])**2)
 
     def has_won(self):
         return len(self.__snake) >= self.__grid.size**2

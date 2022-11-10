@@ -44,15 +44,13 @@ class SnakeEnv(gym.Env):
     def step(self, action):
         self._turn_snake(action)
 
-        dist_to_apple = self.state.dist_to_apple
         ate = self.state.update()
         won = self.state.has_won()
-        new_dist_to_apple = self.state.dist_to_apple
         reward = 0
         
         observation = self._get_obs()
-        if new_dist_to_apple < dist_to_apple:
-            reward = 1 / 50
+        
+        reward = 1 / self.state.dist_to_apple
         if ate:
             reward = 1 / self.state.steps
         if won:
