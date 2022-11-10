@@ -2,33 +2,27 @@ import gymnasium as gym
 from gymnasium import spaces
 from snake_state import SnakeState, GridCellType
 
-DIRECTIONS = [
-    (0, 1), # Up
-    (1, 0),  # Right
-    (0,-1), # Down
-    (-1,0) # Left
-]
-DIRECTION_NONE = -1
-
 class SnakeEnv(gym.Env):
     metadata = {
         "render_modes": ["human"],
         "render_fps": 8
     }
 
-    def __init__(self, render_mode=None, size=8):
+    def __init__(self, render_mode=None, seed=None, size=8):
         if render_mode not in self.metadata["render_modes"]:
             return
-
-        self.state = SnakeState(size)
+    
+        self.state = SnakeState(size, seed)
         self.size = size
         self.window_size = 1024
+        self.seed = seed
                 
-        # Target's location and Neo's location
+        # Target's location, Neo's location and length
         self.observation_space = spaces.Dict({
             "head": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
+            "tail": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
             "apple": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
-            #"head_direction": spaces
+            "length": spaces.Box(0, self.size, dtype=int)
         })
         
         # Action space for turning left or right, or remaining idle
@@ -38,43 +32,50 @@ class SnakeEnv(gym.Env):
         self.screen = None
         self.window = None
         self.clock = None
+        self.death_counter = 0
 
     # Snakes relative turn direction, converted to constant env direction
-    def _turn(self, action):
-        if action == 1: # LEFT
+    def _turn_snake(self, action):
+        if action == 1:
             self.state.turn_left()
-        elif action == 2: #RIGHT
+        elif action == 2:
             self.state.turn_right()
 
     def step(self, action):
-        self._turn(action)
+        self._turn_snake(action)
 
         ate = self.state.update()
         won = self.state.has_won()
         reward = 0
         
         observation = self._get_obs()
+        # TODO: add reward for moving towards apple
         if ate:
-            reward = 100/self.state.steps
+            reward = 1 / self.state.steps
         if won:
-            reward = 500
+            reward = 5
         terminated = won
         truncated = not self.state.alive
         info = None
 
-        if self.render_mode == 'human':
+        if self.render_mode == "human":
             self._render()
 
         return observation, reward, terminated, truncated, info
 
     def _get_obs(self):
         return {
-            "head": self.state.snake[0],
-            "apple": self.state.apple
+            "head": self.state.head_position,
+            "tail": self.state.tail_position,
+            "apple": self.state.apple_position,
+            "length": self.state.snake_length
         }
 
-    def reset(self):
-        self.state = SnakeState(self.size)
+    def reset(self, seed=None):
+        if seed is None:
+            seed = self.seed
+        self.state = SnakeState(self.size, self.seed)
+        self.death_counter += 1
 
     def _render(self):
         if self.render_mode is None:
@@ -94,8 +95,7 @@ class SnakeEnv(gym.Env):
         BG_COLOR = 205
         surface.fill((BG_COLOR,) * 3)
 
-        l, t = 0, 0
-        for pos, v in self.state.grid.cells:
+        for pos, v in self.state.grid_cells:
             x, y = pos
 
             l = square_size * x
@@ -105,7 +105,11 @@ class SnakeEnv(gym.Env):
             pygame.draw.rect(surface, square_color, rect, is_bordered)
 
         self.screen.blit(surface, (0, 0))
-        
+
+        font = pygame.font.SysFont(None, 24)
+        img = font.render(f"Deaths: {self.death_counter}", True, 255)
+        self.screen.blit(img, (20, 20))
+
         self.clock.tick(self.metadata["render_fps"])
         pygame.display.update()
         pygame.event.pump()
@@ -113,8 +117,10 @@ class SnakeEnv(gym.Env):
     def _get_square_display(self, cell_type):
         if cell_type is None:
             return ((55,) * 3, True)
-        elif cell_type == GridCellType.SNAKE:
-                return ((0, 64, 255), False)
+        elif cell_type == GridCellType.SNAKE_BODY:
+            return ((0, 64, 255), False)
+        elif cell_type == GridCellType.SNAKE_HEAD:
+            return ((0, 255, 64), False)
         elif cell_type == GridCellType.APPLE:
             return ((255, 0, 64), False)
 
