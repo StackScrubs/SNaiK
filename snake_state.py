@@ -137,7 +137,7 @@ class SnakeState:
         self.__to_grow = 0
 
     @property
-    def alive(self) -> bool:
+    def is_alive(self) -> bool:
         return self.__alive
 
     @property

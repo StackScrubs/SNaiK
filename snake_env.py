@@ -57,7 +57,7 @@ class SnakeEnv(gym.Env):
         if won:
             reward = 5
         terminated = won
-        truncated = not self.state.alive
+        truncated = not self.state.is_alive
         info = None
 
         if self.render_mode == "human":
