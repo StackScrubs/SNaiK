@@ -129,7 +129,7 @@ class SnakeState:
     def __init__(self, size, seed):
         self.__random = Random(seed)
         self.__grid = Grid(size, self.__random)
-        self.__snake = deque([self.__grid.new_free_cell(GridCellType.HEAD)])
+        self.__snake = deque([self.__grid.new_free_cell(GridCellType.SNAKE_HEAD)])
         self.__alive = True
         self.__apple = self.__grid.new_free_cell(GridCellType.APPLE)
         self.__direction_index = self.__random.randint(0, len(DIRECTIONS) - 1)
@@ -166,7 +166,7 @@ class SnakeState:
 
     @property
     def dist_to_apple(self) -> float:
-        return abs(self.head_position[0] - self.apple_position[0]) + abs(self.head_position[1] - self.apple_position[1])
+        return abs(self.head_position.x - self.apple_position.x) + abs(self.head_position.y - self.apple_position.y)
     
     @property
     def grid_cells(self):
@@ -230,11 +230,11 @@ class SnakeState:
             new_head = self.__snake.pop()
             new_head.move(next_head_pos)
         else:
-            new_head = self.__grid.new_cell(next_head_pos, GridCellType.HEAD)
+            new_head = self.__grid.new_cell(next_head_pos, GridCellType.SNAKE_HEAD)
             self.__to_grow -= 1
 
-        old_head.value = GridCellType.SNAKE
-        new_head.value = GridCellType.HEAD
+        old_head.value = GridCellType.SNAKE_BODY
+        new_head.value = GridCellType.SNAKE_HEAD
 
         self.__snake.appendleft(new_head)
 
