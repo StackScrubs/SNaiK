@@ -166,7 +166,7 @@ class SnakeState:
 
     @property
     def dist_to_apple(self) -> float:
-        return abs(self.__snake[0] - self.apple_position[0]) + abs(self.__snake[1] - self.apple_position[1])
+        return abs(self.head_position[0] - self.apple_position[0]) + abs(self.head_position[1] - self.apple_position[1])
     
     @property
     def grid_cells(self):
