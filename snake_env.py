@@ -101,7 +101,6 @@ class SnakeEnv(gym.Env):
         BG_COLOR = 205
         surface.fill((BG_COLOR,) * 3)
 
-        l, t = 0, 0
         for pos, v in self.state.grid_cells:
             x, y = pos
 
@@ -124,9 +123,9 @@ class SnakeEnv(gym.Env):
     def _get_square_display(self, cell_type):
         if cell_type is None:
             return ((55,) * 3, True)
-        elif cell_type == GridCellType.SNAKE:
+        elif cell_type == GridCellType.SNAKE_BODY:
             return ((0, 64, 255), False)
-        elif cell_type == GridCellType.HEAD:
+        elif cell_type == GridCellType.SNAKE_HEAD:
             return ((0, 255, 64), False)
         elif cell_type == GridCellType.APPLE:
             return ((255, 0, 64), False)

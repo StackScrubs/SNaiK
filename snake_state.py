@@ -28,9 +28,9 @@ class Random:
         return val
     
 class GridCellType(Enum):
-    SNAKE = 1
-    APPLE = 2
-    HEAD = 3
+    SNAKE_BODY = 1
+    SNAKE_HEAD = 2
+    APPLE = 3
 
 class Grid:
     def __init__(self, size, random):
@@ -133,7 +133,7 @@ class SnakeState:
     def __init__(self, size, seed):
         self.__random = Random(seed)
         self.__grid = Grid(size, self.__random)
-        self.__snake = deque([self.__grid.new_cell(self.__grid.find_free_cell(), GridCellType.SNAKE)])
+        self.__snake = deque([self.__grid.new_cell(self.__grid.find_free_cell(), GridCellType.SNAKE_HEAD)])
         self.__alive = True
         self.__apple = self.__grid.new_cell(self.__grid.find_free_cell(), GridCellType.APPLE)
         self.__direction_index = self.__random.randint(0, len(DIRECTIONS) - 1)
@@ -215,8 +215,8 @@ class SnakeState:
             
         tail = self.__snake.pop()
         old_tail_pos = tail.position
-        head.value = GridCellType.SNAKE
-        tail.value = GridCellType.HEAD
+        head.value = GridCellType.SNAKE_BODY
+        tail.value = GridCellType.SNAKE_HEAD
         tail.move(new_head_pos)
         self.__snake.appendleft(tail)
         
@@ -229,7 +229,7 @@ class SnakeState:
 
     def _grow_step(self, old_tail_pos):
         if self.__to_grow > 0:
-            self.__snake.append(self.__grid.new_cell(old_tail_pos, GridCellType.SNAKE))  
+            self.__snake.append(self.__grid.new_cell(old_tail_pos, GridCellType.SNAKE_BODY))  
             self.__to_grow -= 1  
 
     def _respawn_apple(self):
