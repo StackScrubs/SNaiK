@@ -51,7 +51,7 @@ class Grid:
         self.__cells[idx] = None
         self.__free_cells += 1
 
-    def _new_cell(self, idx: int, val: any):
+    def _new_cell(self, idx: int, val: any) -> GridCell:
         if self.__cells[idx] is not None:
             raise Exception(f"cell {self.__cells[idx]} is already occupied")
         cell = GridCell(self, idx, val)
@@ -153,7 +153,7 @@ class SnakeState:
         return self.__snake[-1].position
 
     @property
-    def apple_position(self) -> Vec2:
+    def apple_position(self) -> Vec2 | None:
         return (
             self.__apple.position
             if self.__apple is not None
