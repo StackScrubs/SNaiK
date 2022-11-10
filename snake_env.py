@@ -4,19 +4,19 @@ from snake_state import SnakeState, GridCellType
 
 class SnakeEnv(gym.Env):
     metadata = {
-        "render_modes": ["human"],
-        "render_fps": 8
+        "render_modes": [None, "human"],
+        "render_fps": 0
     }
 
     def __init__(self, render_mode=None, seed=None, size=8):
         if render_mode not in self.metadata["render_modes"]:
             return
-    
+
         self.state = SnakeState(size, seed)
         self.size = size
         self.window_size = 1024
         self.seed = seed
-                
+
         # Target's location, Neo's location and length
         self.observation_space = spaces.Dict({
             "head": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
@@ -24,7 +24,7 @@ class SnakeEnv(gym.Env):
             "apple": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
             "length": spaces.Box(0, self.size, dtype=int)
         })
-        
+
         # Action space for turning left or right, or remaining idle
         self.action_space = spaces.Discrete(3)
 
@@ -45,9 +45,9 @@ class SnakeEnv(gym.Env):
         self._turn_snake(action)
 
         ate = self.state.update()
-        won = self.state.has_won()
+        won = self.state.has_won
         reward = 0
-        
+
         observation = self._get_obs()
         
         if ate:
@@ -57,7 +57,7 @@ class SnakeEnv(gym.Env):
         if won:
             reward = 5
         terminated = won
-        truncated = not self.state.alive
+        truncated = not self.state.is_alive
         info = None
 
         if self.render_mode == "human":
@@ -98,10 +98,8 @@ class SnakeEnv(gym.Env):
         surface.fill((BG_COLOR,) * 3)
 
         for pos, v in self.state.grid_cells:
-            x, y = pos
-
-            l = square_size * x
-            t = square_size * y
+            l = square_size * pos.x
+            t = square_size * pos.y
             square_color, is_bordered = self._get_square_display(v)
             rect = pygame.Rect(l, t, square_size, square_size)
             pygame.draw.rect(surface, square_color, rect, is_bordered)
@@ -129,6 +127,6 @@ class SnakeEnv(gym.Env):
     def close(self):
         if self.window is not None:
             import pygame
-            
+
             pygame.display.quit()
             pygame.quit()
