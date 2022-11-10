@@ -2,13 +2,6 @@ import gymnasium as gym
 from gymnasium import spaces
 from snake_state import SnakeState, GridCellType
 
-DIRECTIONS = [
-    (0, 1), # Up
-    (1, 0), # Right
-    (0,-1), # Down
-    (-1,0)  # Left
-]
-
 class SnakeEnv(gym.Env):
     metadata = {
         "render_modes": ["human"],
@@ -43,9 +36,9 @@ class SnakeEnv(gym.Env):
 
     # Snakes relative turn direction, converted to constant env direction
     def _turn_snake(self, action):
-        if action == 1: # LEFT
+        if action == 1:
             self.state.turn_left()
-        elif action == 2: #RIGHT
+        elif action == 2:
             self.state.turn_right()
 
     def step(self, action):
@@ -56,6 +49,7 @@ class SnakeEnv(gym.Env):
         reward = 0
         
         observation = self._get_obs()
+        # TODO: add reward for moving towards apple
         if ate:
             reward = 1 / self.state.steps
         if won:
