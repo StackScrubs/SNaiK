@@ -209,11 +209,8 @@ class SnakeState:
 
         hit = self.__grid.get_cell(next_head_pos)
         hit_any = hit is not None
-        ate = hit_any and hit.value == GridCellType.APPLE
-        hit_deadly = hit_any and (
-            (ate and hit is tail) or
-            (hit is not self.__apple)
-        )
+        ate = hit_any and hit is self.__apple
+        hit_deadly = hit_any and not ate
 
         if hit_deadly:
             self.__alive = False
