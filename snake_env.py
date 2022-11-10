@@ -49,9 +49,11 @@ class SnakeEnv(gym.Env):
         reward = 0
         
         observation = self._get_obs()
-        # TODO: add reward for moving towards apple
+        
         if ate:
             reward = 1 / self.state.steps
+        else:
+            reward = 1 / self.state.dist_to_apple
         if won:
             reward = 5
         terminated = won

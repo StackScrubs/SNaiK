@@ -165,6 +165,10 @@ class SnakeState:
         return len(self.__snake) + self.__to_grow
 
     @property
+    def dist_to_apple(self) -> float:
+        return abs(self.head_position[0] - self.apple_position[0]) + abs(self.head_position[1] - self.apple_position[1])
+    
+    @property
     def grid_cells(self):
         return self.__grid.cells
 
