@@ -48,6 +48,7 @@ class SnakeEnv(gym.Env):
         ate = self.state.update()
         won = self.state.has_won
         reward = 0
+        self.steps += 1
 
         observation = self._get_obs()
         
@@ -64,8 +65,6 @@ class SnakeEnv(gym.Env):
 
         if self.render_mode == "human":
             self._render()
-            
-        self.steps += 1
 
         return observation, reward, terminated, truncated, info
 
