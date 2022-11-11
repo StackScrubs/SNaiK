@@ -6,9 +6,9 @@ class ReplayMemory:
     def __init__(self, capacity):
         self.memory = deque([],maxlen=capacity)
 
-    def push(self, state, action, next_state, reward):
+    def push(self, state, new_state, action, reward):
         """Save a transition, and if full, removes the leftmost transition (oldest)"""
-        self.memory.append(Transition(state, action, next_state, reward))
+        self.memory.append(Transition(state, new_state, action, reward))
 
     def sample(self, batch_size):
         return sample(self.memory, batch_size)

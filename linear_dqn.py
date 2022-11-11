@@ -1,15 +1,37 @@
 import torch
 import torch.nn as nn
+from transition import Transition
 
 class LinDQN(nn.Module):
-    def __init__(self, state_sz):
+    def __init__(self):
         super(LinDQN, self).__init__()
-        self.lin1 = nn.Linear(state_sz, )
 
-    def f(self):
-        pass
+        self.logits = nn.Sequential(
+            nn.Linear(1, 32 * 32 * 32 * 32),
+            nn.MaxPool1d(kernel_size=1),
+            nn.ReLU(),
+            nn.Linear(32 * 32 * 32 * 32, 64 * 64 * 64 * 64),
+            nn.MaxPool1d(kernel_size=1),
+            nn.ReLU(),
+            # additional layer before output?
+            # nn.Flatten() ? :-()
+            nn.Linear(64 * 64 * 64 * 64, 3)
+        )
 
-    def loss(self):
-        pass
+    def f(self, state):
+        # softmax?
+        return self.logits(state)
 
-    #def accuracy?
+    def loss(self, state, action, target_val):
+        return nn.functional.mse_loss(self.logits(state)[action], target_val)
+        #return (self.logits(state)[action] - target_val)**2 # based on https://stats.stackexchange.com/questions/249355/how-exactly-to-compute-deep-q-learning-loss-function
+
+    def init_layer_weights(self):
+        self.logits.apply(LinDQN._init_layer_weights)
+
+    def _init_layer_weights(layer):
+        if isinstance(layer, nn.Linear):
+            torch.nn.init.xavier_uniform(layer.weight)
+            layer.bias.data.fill_(0.01)
+
+    # def accuracy(self): ?
