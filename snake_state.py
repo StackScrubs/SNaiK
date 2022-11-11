@@ -13,12 +13,10 @@ DIRECTIONS = [
     Vec2(-1, 0),  # Left
 ]
 
-
 class GridCellType(Enum):
     SNAKE_BODY = 1
     SNAKE_HEAD = 2
     APPLE = 3
-
 
 class Grid:
     def __init__(self, size, random):
@@ -159,10 +157,6 @@ class SnakeState:
     def snake_length(self) -> int:
         return len(self.__snake) + self.__to_grow
 
-    @property
-    def dist_to_apple(self) -> float:
-        return abs(self.head_position.x - self.apple_position.x) + abs(self.head_position.y - self.apple_position.y)
-    
     @property
     def grid_cells(self):
         return self.__grid.cells

@@ -1,3 +1,4 @@
+from typing import Any
 import gymnasium as gym
 from gymnasium import spaces
 from snake_state import SnakeState, GridCellType
@@ -5,7 +6,7 @@ from snake_state import SnakeState, GridCellType
 class SnakeEnv(gym.Env):
     metadata = {
         "render_modes": [None, "human"],
-        "render_fps": 8
+        "render_fps": 15
     }
 
     def __init__(self, render_mode=None, seed=None, size=8):
@@ -45,26 +46,30 @@ class SnakeEnv(gym.Env):
     def step(self, action):
         self._turn_snake(action)
 
+        dist_to_apple = self.state.head_position.manhattan_dist(self.state.apple_position)
         ate = self.state.update()
         won = self.state.has_won
+        new_dist_to_apple = self.state.head_position.manhattan_dist(self.state.apple_position)
         reward = 0
         self.steps += 1
-
         observation = self._get_obs()
         
         if ate:
             reward = 1 / self.steps
             self.steps = 0
         else:
-            reward = 1 / self.state.dist_to_apple
+            reward = dist_to_apple - new_dist_to_apple
+            
         if won:
             reward = 5
+        if not self.state.is_alive:
+            reward = -5
+            
         terminated = won
         truncated = not self.state.is_alive
         info = None
 
-        if self.render_mode == "human":
-            self._render()
+        self._render()
 
         return observation, reward, terminated, truncated, info
 
@@ -76,14 +81,16 @@ class SnakeEnv(gym.Env):
             "length": self.state.snake_length
         }
 
-    def reset(self, seed=None):
+    def reset(self, seed: Any | None = None):
         if seed is None:
             seed = self.seed
-        self.state = SnakeState(self.size, self.seed)
+        self.state = SnakeState(self.size, seed)
         self.death_counter += 1
+        self._render()
+        return self._get_obs()
 
     def _render(self):
-        if self.render_mode is None:
+        if self.render_mode != "human":
             return
 
         import pygame
@@ -113,9 +120,9 @@ class SnakeEnv(gym.Env):
         img = font.render(f"Deaths: {self.death_counter}", True, 255)
         self.screen.blit(img, (20, 20))
 
-        self.clock.tick(self.metadata["render_fps"])
         pygame.display.update()
         pygame.event.pump()
+        self.clock.tick(self.metadata["render_fps"])
 
     def _get_square_display(self, cell_type):
         if cell_type is None:

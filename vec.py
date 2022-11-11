@@ -1,6 +1,5 @@
 from typing_extensions import Self
 
-
 class Vec2:
     def __init__(self, x: int, y: int):
         self.x = x
@@ -27,3 +26,6 @@ class Vec2:
 
     def __repr__(self):
         return f"vec.Vec2({self.x.__repr__()}, {self.y.__repr__()})"
+
+    def manhattan_dist(self, other):
+        return abs(self.x - other.x) + abs(self.y - other.y)
