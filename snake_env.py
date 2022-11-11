@@ -5,7 +5,7 @@ from snake_state import SnakeState, GridCellType
 class SnakeEnv(gym.Env):
     metadata = {
         "render_modes": [None, "human"],
-        "render_fps": 0
+        "render_fps": 8
     }
 
     def __init__(self, render_mode=None, seed=None, size=8):
@@ -16,6 +16,7 @@ class SnakeEnv(gym.Env):
         self.size = size
         self.window_size = 1024
         self.seed = seed
+        self.steps = 0
 
         # Target's location, Neo's location and length
         self.observation_space = spaces.Dict({
@@ -47,11 +48,13 @@ class SnakeEnv(gym.Env):
         ate = self.state.update()
         won = self.state.has_won
         reward = 0
+        self.steps += 1
 
         observation = self._get_obs()
         
         if ate:
-            reward = 1 / self.state.steps
+            reward = 1 / self.steps
+            self.steps = 0
         else:
             reward = 1 / self.state.dist_to_apple
         if won:
