@@ -5,9 +5,10 @@ from dqn_agent import DQNAgent
 SEED = None
 GRID_SIZE = 8
 
-learning_env = SnakeEnv(render_mode=None, size=GRID_SIZE, seed=SEED)
-render_env = SnakeEnv(render_mode="human", size=GRID_SIZE, seed=SEED)
-render_obs = render_env.reset()
+def main():
+    env = SnakeEnv(render_mode="human", size=8, seed=SEED)
+    agent = DQNAgent(env)#DQNAgent.from_file('dqn_model_100k.qbf')
+    #agent.set_env(env)
 
 env = SnakeEnv(render_mode='human', size=8, seed=SEED)
 agent = DQNAgent(env)

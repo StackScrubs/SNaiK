@@ -26,7 +26,7 @@ class LazyDict(Mapping):
 class SnakeEnv(gym.Env):
     metadata = {
         "render_modes": [None, "human"],
-        "render_fps": 60
+        "render_fps": 16
     }
 
     def __init__(self, render_mode=None, seed=None, size=8):

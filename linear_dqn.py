@@ -1,22 +1,31 @@
 import torch
 import torch.nn as nn
 from transition import Transition
+import numpy as np
 
 class LinDQN(nn.Module):
     def __init__(self):
         super(LinDQN, self).__init__()
+        self.layer_1_dim = 16
+        self.layer_2_dim = 32
+        self.layer_3_dim = 64
 
-        self.logits = nn.Sequential(
-            nn.Linear(1, 2 * 2 * 2 * 2),
-            nn.MaxPool1d(kernel_size=1),
-            nn.ReLU(),
-            nn.Linear(2 * 2 * 2 * 2, 4 * 4 * 4 * 4),
-            nn.MaxPool1d(kernel_size=1),
-            nn.ReLU(),
-            # additional layer before output?
-            # nn.Flatten() ? :-()
-            nn.Linear(4 * 4 * 4 * 4, 3)
+        self.nn_logits = nn.Sequential(
+            nn.Linear(4, self.layer_1_dim),
+            nn.Tanh(),
+            #nn.ReLU(),
+            nn.Linear(self.layer_1_dim, self.layer_2_dim),
+            nn.Tanh(),
+            #nn.ReLU(),
+            nn.Linear(self.layer_2_dim, self.layer_3_dim),
+            nn.Tanh(),
+            #nn.ReLU(),
+            #nn.Flatten(0, -1),# ? :-()
+            nn.Linear(self.layer_3_dim, 3)
         )
+
+    def logits(self, state):
+        return self.nn_logits(state)
 
     def f(self, state):
         # softmax?
@@ -26,10 +35,10 @@ class LinDQN(nn.Module):
         return nn.functional.mse_loss(self.logits(state)[action], target_val)
         #return (self.logits(state)[action] - target_val)**2 # based on https://stats.stackexchange.com/questions/249355/how-exactly-to-compute-deep-q-learning-loss-function
 
-    def init_layer_weights(self):
-        self.logits.apply(LinDQN._init_layer_weights)
+    def init_layers(self):
+        self.nn_logits.apply(LinDQN.__init_layer_weights)
 
-    def _init_layer_weights(layer):
+    def __init_layer_weights(layer):
         if isinstance(layer, nn.Linear):
             torch.nn.init.xavier_uniform_(layer.weight)
             layer.bias.data.fill_(0.01)
