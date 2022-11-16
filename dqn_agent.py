@@ -40,6 +40,20 @@ def dqn_main(env: Env, seed, epochs: int):
 
     pass
 
+def _tensorize(grid_size: int, observation) -> int:
+    n_squares = grid_size*grid_size
+    dvec = lambda v: v.x*grid_size + v.y
+    
+    apple_obs = observation["apple"]
+    apple_obs = dvec(apple_obs) if not apple_obs is None else n_squares
+
+    return torch.tensor([
+        dvec(observation["head"]) * n_squares**3,
+        dvec(observation["tail"]) * n_squares**2,
+        apple_obs * n_squares,
+        (observation["length"] - 1)
+    ])
+
 class DQNAgent:
 
     LEARNING_RATE = 0.001
@@ -80,26 +94,30 @@ class DQNAgent:
             return memory.action
 
     def experience_replay(self):
-        action = random.choice([0, 1, 2])
+        action = random.randint(0, 2)
 
         new_state, reward, terminated, truncated, info = self.env.step(action)
         if terminated or truncated:
             self.env.reset() # seed
 
-        self.memorize(self.state, new_state, action, reward)
-        self.state = new_state
+        self.memorize(self.state, _tensorize(8, new_state), action, reward)
+        self.state = _tensorize(8, new_state)
 
     def train(self):
         self.q_network.train(True)
         self.target_network.train(False)
 
         self.q_network.init_layer_weights()
-        self.target_network.load_state_dict(self.q_network)
+        self.target_network.load_state_dict(self.q_network.state_dict())
+
+        #for i in range(self.batch_size):
+         #   self.experience_replay()
 
         optimizer = torch.optim.Adam(self.q_network.parameters(), self.LEARNING_RATE)
         EPISODES = 10_000
         for i in range(EPISODES):
-            self.experience_replay()
+            for i in range(self.batch_size):
+                self.experience_replay()
 
             memories = self.memory_buffer.sample(self.batch_size)
 

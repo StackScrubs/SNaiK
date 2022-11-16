@@ -1,6 +1,6 @@
 from snake_env import SnakeEnv
-from qtable import SnakeQLearningAgent
-from discretizer import FullDiscretizer, QuadDiscretizer, AngularDiscretizer
+import random
+from dqn_agent import DQNAgent
 
 SEED = None
 GRID_SIZE = 8
@@ -9,34 +9,19 @@ learning_env = SnakeEnv(render_mode=None, size=GRID_SIZE, seed=SEED)
 render_env = SnakeEnv(render_mode="human", size=GRID_SIZE, seed=SEED)
 render_obs = render_env.reset()
 
-terminated, truncated = False, False
+env = SnakeEnv(render_mode='human', size=8, seed=SEED)
+agent = DQNAgent(env)
 
-#agent = SnakeQLearningAgent(FullDiscretizer(GRID_SIZE))
-agent = SnakeQLearningAgent(QuadDiscretizer(GRID_SIZE, 1))
-#agent = SnakeQLearningAgent(AngularDiscretizer(GRID_SIZE, 16))
+agent.train()
 
-def try_render_once():
-    global render_obs
-    if render_env.can_render:
-        render_env.death_counter = learning_env.death_counter
-        action = agent.get_optimal_action(render_obs)
-        render_obs, _, terminated, truncated, info = render_env.step(action)
-        
-        if terminated or truncated:
-            render_env.reset()
+# env = SnakeEnv(render_mode='human', size=8, seed=SEED)
+# terminated, truncated = False, False
 
-def main():
-    observation = learning_env.reset()
-    reward = 0
-    
-    while True:
-        try_render_once()
-        
-        action = agent.update(observation, reward)
-        observation, reward, terminated, truncated, info = learning_env.step(action)
-        
-        if terminated or truncated:
-            learning_env.reset()
+# while True:
+#     action = random.choice([0,1,2])
+#     observation, reward, terminated, truncated, info = env.step(action)
+#     print((observation, reward, terminated, truncated, info))
+#     if terminated or truncated:
+#         env.reset(seed=SEED)
 
-if __name__ == "__main__":
-    main()
+# env.close()

@@ -7,15 +7,15 @@ class LinDQN(nn.Module):
         super(LinDQN, self).__init__()
 
         self.logits = nn.Sequential(
-            nn.Linear(1, 32 * 32 * 32 * 32),
+            nn.Linear(1, 2 * 2 * 2 * 2),
             nn.MaxPool1d(kernel_size=1),
             nn.ReLU(),
-            nn.Linear(32 * 32 * 32 * 32, 64 * 64 * 64 * 64),
+            nn.Linear(2 * 2 * 2 * 2, 4 * 4 * 4 * 4),
             nn.MaxPool1d(kernel_size=1),
             nn.ReLU(),
             # additional layer before output?
             # nn.Flatten() ? :-()
-            nn.Linear(64 * 64 * 64 * 64, 3)
+            nn.Linear(4 * 4 * 4 * 4, 3)
         )
 
     def f(self, state):
@@ -31,7 +31,7 @@ class LinDQN(nn.Module):
 
     def _init_layer_weights(layer):
         if isinstance(layer, nn.Linear):
-            torch.nn.init.xavier_uniform(layer.weight)
+            torch.nn.init.xavier_uniform_(layer.weight)
             layer.bias.data.fill_(0.01)
 
     # def accuracy(self): ?
