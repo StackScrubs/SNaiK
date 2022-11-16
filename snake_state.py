@@ -38,8 +38,8 @@ class Grid:
             src_pos = self._index_to_pos(src_idx)
             dst_pos = self._index_to_pos(dst_idx)
             raise Exception(
-                f"cannot move cell from {src_pos} to {dst_pos}:"
-                f"destination is occupied by {self.__cells[dst_idx]}"
+                f"Cannot move cell from {src_pos} to {dst_pos}:"
+                f"Destination is occupied by {self.__cells[dst_idx]}"
             )
         self.__cells[dst_idx] = self.__cells[src_idx]
         self.__cells[src_idx] = None
@@ -51,7 +51,7 @@ class Grid:
 
     def _new_cell(self, idx: int, val: any) -> GridCell:
         if self.__cells[idx] is not None:
-            raise Exception(f"cell {self.__cells[idx]} is already occupied")
+            raise Exception(f"Cell {self.__cells[idx]} is already occupied")
         cell = GridCell(self, idx, val)
         self.__cells[idx] = cell
         self.__free_cells -= 1
@@ -86,9 +86,7 @@ class Grid:
             if f == n:
                 free_idx = i
                 break
-
         return self._index_to_pos(free_idx)
-
 
 class GridCell:
     def __init__(self: Self, grid: Grid, index: int, value: Any):
@@ -100,14 +98,14 @@ class GridCell:
     def position(self):
         return self.__grid._index_to_pos(self.__index)
 
+    @property
+    def value(self):
+        return self.__value
+    
     def move(self, pos: Vec2):
         dst_idx = self.__grid._pos_to_index(pos)
         self.__grid._move_cell(self.__index, dst_idx)
         self.__index = dst_idx
-
-    @property
-    def value(self):
-        return self.__value
 
     @value.setter
     def value(self, val):
@@ -177,17 +175,14 @@ class SnakeState:
     def update(self):
         if not self.__alive:
             return False
-
+        
         ate = self._snake_step()
-
         return ate
 
     def _snake_step(self) -> bool:
         head = self.__snake[0]
-        tail = self.__snake[-1]
-
+        
         next_head_pos = head.position + DIRECTIONS[self.__direction_index]
-
         if not next_head_pos.within(
             Vec2(0, 0),
             Vec2(self.__grid.size - 1, self.__grid.size - 1)

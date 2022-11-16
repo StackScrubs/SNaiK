@@ -19,7 +19,7 @@ def _discretize(grid_size: int, observation) -> int:
 class QTable:
     def __init__(self, action_space_sz: int, state_space_sz: int) -> Self:
         self.alpha = 0.6
-        self.gamma = 0.8
+        self.gamma = 0.5
         self.action_space_sz = action_space_sz
         self.state_space_sz = state_space_sz
         self.__q_table = np.zeros((self.state_space_sz, self.action_space_sz))
@@ -40,7 +40,7 @@ class QTable:
 
     @staticmethod
     def get_epsilon(episode: int) -> float:
-        return max(.01, min(1., 1. - np.log10((episode + 1) / 25)))
+        return max(0.01, min(1, 1 - np.log10((episode + 1) / 25)))
 
     def to_file(self, base_path='.'):
         import csv
@@ -109,7 +109,7 @@ class SnakeQLearningAgent:
     def __get_state_space_len(grid_size: int) -> int:
         n_cells = grid_size**2
 
-        n_head_pos = n_cells # head can be anywhere 
+        n_head_pos = n_cells 
         n_apple_pos = n_cells + 1 # apple can be in any grid cells, or nowhere when game is finished
         n_tail_pos = n_cells
         n_length = n_cells
