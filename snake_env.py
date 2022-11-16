@@ -9,7 +9,7 @@ class SnakeEnv(gym.Env):
         "render_fps": 15
     }
 
-    def __init__(self, render_mode=None ,seed=None, size=8):
+    def __init__(self, render_mode=None, seed=None, size=8):
         if render_mode not in self.metadata["render_modes"]:
             return
 
