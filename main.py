@@ -12,11 +12,11 @@ terminated, truncated = False, False
 
 agent = SnakeQLearningAgent(GRID_SIZE)
 
-def render_once():
+def try_render_once():
     global render_obs
     if render_env.can_render:
         render_env.death_counter = learning_env.death_counter
-        action = agent.get(render_obs)
+        action = agent.get_optimal_action(render_obs)
         render_obs, _, terminated, truncated, info = render_env.step(action)
         
         if terminated or truncated:
@@ -26,15 +26,13 @@ def main():
     observation = learning_env.reset()
     reward = 0
     while True:
-        render_once()
+        try_render_once()
         
         action = agent.update(observation, reward)
         observation, reward, terminated, truncated, info = learning_env.step(action)
         
         if terminated or truncated:
             learning_env.reset()
-
-    learning_env.close()
 
 if __name__ == "__main__":
     main()

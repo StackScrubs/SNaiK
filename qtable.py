@@ -1,5 +1,6 @@
-from transition import Transition
 import numpy as np
+from pickle import dumps, loads
+from transition import Transition
 from typing_extensions import Self
 
 def _discretize(grid_size: int, observation) -> int:
@@ -7,7 +8,7 @@ def _discretize(grid_size: int, observation) -> int:
     dvec = lambda v: v.x*grid_size + v.y
     
     apple_obs = observation["apple"]
-    apple_obs = dvec(apple_obs) if not apple_obs is None else n_squares
+    apple_obs = dvec(apple_obs) if apple_obs is not None else n_squares
 
     return (
         dvec(observation["head"]) * n_squares**3 +
@@ -42,32 +43,17 @@ class QTable:
     def get_epsilon(episode: int) -> float:
         return max(0.01, min(1, 1 - np.log10((episode + 1) / 25)))
 
-    def to_file(self, base_path='.'):
-        import csv
+    def to_file(self, base_path = "."):
         from time import time
-        with open(f'{base_path}/q_table_model_{time()}.csv', 'w') as csvfile:
-            writer = csv.writer(csvfile, delimiter=',', quotechar=None, quoting=csv.QUOTE_NONE)
-            writer.writerow([f'action_{x}' for x in range(self.action_space_sz)])
-
-            writer.writerows(self.__q_table)
+        pickle_dump = dumps(self)
+        with open(f"{base_path}/q_model_{time()}.qbf", "wb") as f:
+            f.write(pickle_dump)
 
     @staticmethod
     def from_file(file_path) -> Self:
-        q_table_matrix = None
-        import csv
-        with open(file_path, 'r') as csv_file:
-            reader = csv.reader(csv_file, delimiter=',')
-            
-            lc = 0
-            for row in reader:
-                if lc == 0:
-                    cols = len(row)
-                    q_table_matrix = np.array((0, cols))
-                else:
-                    np.vstack([q_table_matrix, row])
-                lc += 1
-            
-        return QTable.from_matrix(q_table_matrix)
+        with open(file_path, "rb") as f:
+            agent = loads(f.read())
+            return agent
 
     def _bellman_equation(self, transition: Transition) -> float:
         return self.alpha*(
@@ -86,7 +72,7 @@ class SnakeQLearningAgent:
         self.__grid_size = grid_size
         self.q = QTable(self.__action_space_len, state_space_len)
 
-    def get(self, observation):
+    def get_optimal_action(self, observation):
         return self.q.policy(self.__discretize(observation))
 
     def update(self, observation, reward: float):
