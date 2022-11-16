@@ -13,13 +13,13 @@ def _discretize(grid_size: int, observation) -> int:
         dvec(observation["head"]) * n_squares**3 +
         dvec(observation["tail"]) * n_squares**2 +
         apple_obs * n_squares +
-        (observation["length"] - 1) 
+        (observation["length"] - 1)
     )
 
 class QTable:
     def __init__(self, action_space_sz: int, state_space_sz: int) -> Self:
-        self.alpha = 0.6
-        self.gamma = 0.5
+        self.alpha = 0.1
+        self.gamma = 0.9
         self.action_space_sz = action_space_sz
         self.state_space_sz = state_space_sz
         self.__q_table = np.zeros((self.state_space_sz, self.action_space_sz))
@@ -75,7 +75,7 @@ class QTable:
             + self.gamma*np.max(self.__q_table[transition.new_state, :])
             - self.__q_table[transition.state, transition.action]
         )
-
+    
 class SnakeQLearningAgent:
     def __init__(self, grid_size: int):
         state_space_len = self.__get_state_space_len(grid_size)
@@ -85,6 +85,9 @@ class SnakeQLearningAgent:
         self.__episode = 0
         self.__grid_size = grid_size
         self.q = QTable(self.__action_space_len, state_space_len)
+
+    def get(self, observation):
+        return self.q.policy(self.__discretize(observation))
 
     def update(self, observation, reward: float):
         new_state = self.__discretize(observation)

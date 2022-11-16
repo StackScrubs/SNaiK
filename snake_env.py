@@ -9,7 +9,7 @@ class SnakeEnv(gym.Env):
         "render_fps": 15
     }
 
-    def __init__(self, render_mode=None, seed=None, size=8):
+    def __init__(self, render_mode=None ,seed=None, size=8):
         if render_mode not in self.metadata["render_modes"]:
             return
 
@@ -34,6 +34,7 @@ class SnakeEnv(gym.Env):
         self.screen = None
         self.window = None
         self.clock = None
+        self.last_render_ms = None
         self.death_counter = 0
 
     # Snakes relative turn direction, converted to constant env direction
@@ -49,7 +50,6 @@ class SnakeEnv(gym.Env):
         dist_to_apple = self.state.head_position.manhattan_dist(self.state.apple_position)
         ate = self.state.update()
         won = self.state.has_won
-        new_dist_to_apple = self.state.head_position.manhattan_dist(self.state.apple_position)
         reward = 0
         self.steps += 1
         observation = self._get_obs()
@@ -58,6 +58,7 @@ class SnakeEnv(gym.Env):
             reward = 1 / self.steps
             self.steps = 0
         else:
+            new_dist_to_apple = self.state.head_position.manhattan_dist(self.state.apple_position)
             reward = dist_to_apple - new_dist_to_apple
             
         if won:
@@ -81,13 +82,21 @@ class SnakeEnv(gym.Env):
             "length": self.state.snake_length
         }
 
-    def reset(self, seed: Any | None = None):
+    def reset(self, seed: Any = None):
         if seed is None:
             seed = self.seed
         self.state = SnakeState(self.size, seed)
         self.death_counter += 1
         self._render()
         return self._get_obs()
+
+    @property
+    def can_render(self):
+        import pygame
+        return (
+            self.last_render_ms is None or 
+            (pygame.time.get_ticks() - self.last_render_ms) > (1 / self.metadata["render_fps"])*1000
+        )
 
     def _render(self):
         if self.render_mode != "human":
@@ -119,10 +128,10 @@ class SnakeEnv(gym.Env):
         font = pygame.font.SysFont(None, 24)
         img = font.render(f"Deaths: {self.death_counter}", True, 255)
         self.screen.blit(img, (20, 20))
-
         pygame.display.update()
         pygame.event.pump()
         self.clock.tick(self.metadata["render_fps"])
+        self.last_render_ms = pygame.time.get_ticks()
 
     def _get_square_display(self, cell_type):
         if cell_type is None:
