@@ -1,24 +1,38 @@
 from snake_env import SnakeEnv
-import random
+from qtable import SnakeQLearningAgent
 
-SEED = 1337
+SEED = None
+GRID_SIZE = 6
 
-env = SnakeEnv(render_mode="human", size=8, seed=SEED)
+learning_env = SnakeEnv(render_mode=None, size=GRID_SIZE, seed=SEED)
+render_env = SnakeEnv(render_mode="human", size=GRID_SIZE, seed=SEED)
+render_obs = render_env.reset()
+
 terminated, truncated = False, False
 
-random.seed(SEED)
+agent = SnakeQLearningAgent(GRID_SIZE)
 
-
-def main():
-    while True:
-        action = random.randint(0, 2)
-        observation, reward, terminated, truncated, info = env.step(action)
-        print((observation, reward, terminated, truncated, info))
+def try_render_once():
+    global render_obs
+    if render_env.can_render:
+        render_env.death_counter = learning_env.death_counter
+        action = agent.get_optimal_action(render_obs)
+        render_obs, _, terminated, truncated, info = render_env.step(action)
         
         if terminated or truncated:
-            env.reset(seed=SEED)
+            render_env.reset()
 
-    env.close()
+def main():
+    observation = learning_env.reset()
+    reward = 0
+    while True:
+        try_render_once()
+        
+        action = agent.update(observation, reward)
+        observation, reward, terminated, truncated, info = learning_env.step(action)
+        
+        if terminated or truncated:
+            learning_env.reset()
 
 if __name__ == "__main__":
     main()
