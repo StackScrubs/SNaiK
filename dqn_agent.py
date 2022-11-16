@@ -10,8 +10,8 @@ from tqdm import tqdm
 
 class DQNAgent:
 
-    ALPHA = 0.9
-    GAMMA = 0.1
+    ALPHA = 0.1
+    GAMMA = 0.9
     MEMORY_SIZE = 5_000
     T = 100
 

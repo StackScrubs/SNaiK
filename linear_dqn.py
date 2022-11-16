@@ -6,9 +6,9 @@ import numpy as np
 class LinDQN(nn.Module):
     def __init__(self):
         super(LinDQN, self).__init__()
-        self.layer_1_dim = 16
-        self.layer_2_dim = 32
-        self.layer_3_dim = 64
+        self.layer_1_dim = 12
+        self.layer_2_dim = 24
+        self.layer_3_dim = 30
 
         self.nn_logits = nn.Sequential(
             nn.Linear(4, self.layer_1_dim),
