@@ -152,6 +152,10 @@ class SnakeState:
         )
 
     @property
+    def direction(self) -> int:
+        return self.__direction_index
+
+    @property
     def snake_length(self) -> int:
         return len(self.__snake) + self.__to_grow
 

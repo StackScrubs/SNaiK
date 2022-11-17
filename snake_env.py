@@ -6,7 +6,7 @@ from snake_state import SnakeState, GridCellType
 class SnakeEnv(gym.Env):
     metadata = {
         "render_modes": [None, "human"],
-        "render_fps": 15
+        "render_fps": 60
     }
 
     def __init__(self, render_mode=None, seed=None, size=8):
@@ -22,6 +22,7 @@ class SnakeEnv(gym.Env):
         # Target's location, Neo's location and length
         self.observation_space = spaces.Dict({
             "head": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
+            "direction": spaces.Discrete(4),
             "tail": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
             "apple": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
             "length": spaces.Box(0, self.size, dtype=int)
@@ -77,6 +78,7 @@ class SnakeEnv(gym.Env):
     def _get_obs(self):
         return {
             "head": self.state.head_position,
+            "direction": self.state.direction,
             "tail": self.state.tail_position,
             "apple": self.state.apple_position,
             "length": self.state.snake_length
