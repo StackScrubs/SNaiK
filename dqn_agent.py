@@ -2,7 +2,7 @@ from copy import deepcopy
 from replay_memory import ReplayMemory
 from gymnasium import Env
 import random
-from linear_dqn import LinDQN
+from conv_dqn import ConvolutionalDQN
 import numpy as np
 import torch
 import pickle
@@ -27,11 +27,11 @@ class DQNAgent:
         self.total_steps = 0
         self.env_size = env_size
 
-        self.q_network = LinDQN()
-        self.target_network = LinDQN()
+        self.q_network = ConvolutionalDQN()
+        self.target_network = ConvolutionalDQN()
 
         self.memory_buffer = ReplayMemory(self.MEMORY_SIZE)
-        self.state = torch.tensor([0., 0., 0., 0.])
+        self.state = torch.tensor([0. for _ in range(8**2)]).reshape(-1, 1, 8, 8).float()
 
         self.q_network.train(True)
         self.target_network.train(False)
@@ -71,7 +71,7 @@ class DQNAgent:
         if terminated or truncated:
             env.reset()
 
-        new_state = DQNAgent.__tensorize_state(self.env_size, new_state)
+        new_state = DQNAgent.__tensorize_state(new_state)
         self.memorize(self.state, new_state, action, reward)
         self.state = new_state
 
@@ -80,13 +80,13 @@ class DQNAgent:
             self.experience_replay(env, explore_only=True)
 
     def get_optimal_action(self, state):
-        state = DQNAgent.__tensorize_state(self.env_size, state)
+        state = DQNAgent.__tensorize_state(state)
         action_q_vals = self.q_network.f(state)
         return torch.argmax(action_q_vals).item()
 
     def train_q_network(self, memories):
         for memory in memories:
-            target_q_values = self.target_network.f(memory.new_state)
+            target_q_values = self.target_network.f(memory.new_state)[0]
             target_q_value = self.GAMMA * torch.max(target_q_values) + memory.reward
 
             self.q_network.loss(memory.state, memory.action, target_q_value).backward()
@@ -98,19 +98,8 @@ class DQNAgent:
         self.target_network.load_state_dict(deepcopy(self.q_network.state_dict()))
 
     @staticmethod
-    def __tensorize_state(grid_size: int, state) -> torch.Tensor:
-        n_squares = grid_size*grid_size
-        dvec = lambda v: v.x*grid_size + v.y
-        
-        apple_obs = state["apple"]
-        apple_obs = dvec(apple_obs) if apple_obs is not None else n_squares
-        
-        return torch.tensor([
-            dvec(state["head"]),
-            dvec(state["tail"]),
-            apple_obs,
-            state["length"]
-        ]) / n_squares
+    def __tensorize_state(state) -> torch.Tensor:
+        return torch.tensor(state["grid"]).reshape(-1, 1, 8, 8).float()
 
     def to_file(self, base_path = "."):
         from time import time

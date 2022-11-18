@@ -30,8 +30,8 @@ def main():
     agent.experience_initial(learning_env)
     i = 0
     while True:
-        if i > 10_000:
-            try_render_once()
+        #if i > 10_000:
+        try_render_once()
         
         agent.experience_replay(learning_env)
 
