@@ -1,3 +1,4 @@
+from copy import deepcopy
 from replay_memory import ReplayMemory
 from gymnasium import Env
 import random
@@ -6,92 +7,95 @@ import numpy as np
 import torch
 import pickle
 from typing_extensions import Self
-from tqdm import tqdm
 
 class DQNAgent:
 
-    ALPHA = 0.1
+    ALPHA = 0.01
     GAMMA = 0.9
-    MEMORY_SIZE = 5_000
-    T = 100
+    MEMORY_SIZE = 50_000
+    T = 32
 
     EXPLORE_PROB = 0.9
     EXPLORE_PROB_END = 0.05
     EXPLORE_PROB_DECAY = 200
+    EPS_START = 0.9
+    EPS_END = 0.05  # Petition to rename to this? Sice we use epsilon in get_action()
+    EPS_DECAY = 200
 
-    def __init__(self, env: Env):
-        self.env = env
-        self.batch_size = 10
+    def __init__(self, env_size):
+        self.batch_size = 64
         self.total_steps = 0
+        self.env_size = env_size
 
         self.q_network = LinDQN()
         self.target_network = LinDQN()
 
         self.memory_buffer = ReplayMemory(self.MEMORY_SIZE)
         self.state = torch.tensor([0., 0., 0., 0.])
-    
-    def set_env(self, env):
-        self.env = env
+
+        self.q_network.train(True)
+        self.target_network.train(False)
+        
+        self.q_network.init_layers()
+        self.copy_q_to_target()
+
+        self.optimizer = torch.optim.Adam(self.q_network.parameters(), self.ALPHA)
+
+    @property
+    def memory_sample(self):
+        return self.memory_buffer.sample(self.batch_size)
 
     def memorize(self, state: torch.Tensor, new_state: torch.Tensor, action: int, reward: int): 
         self.memory_buffer.push(state, new_state, action, reward)
 
-    def act(self, explore_only = False) -> int:
+    def get_random_action(self):
+        return random.randint(0, 2)
+
+    def get_action(self) -> int:
         epsilon = self.EXPLORE_PROB_END \
                     + (self.EXPLORE_PROB - self.EXPLORE_PROB_END) \
                     * np.exp(-1 * self.total_steps / self.EXPLORE_PROB_DECAY)
 
-        if not explore_only:
-            self.total_steps += 1
+        self.total_steps += 1
 
-        if explore_only or random.random() < epsilon:
-            return random.randint(0, 2)
+        if random.random() < epsilon:
+            return self.get_random_action()
         else:
             action_q_vals = self.q_network.f(self.state)
             return torch.argmax(action_q_vals).item()
 
-    def experience_replay(self, explore_only=False):
-        action = self.act(explore_only)
+    def experience_replay(self, env, explore_only=False):
+        action = self.get_action() if not explore_only else self.get_random_action()
 
-        new_state, reward, terminated, truncated, _ = self.env.step(action)
+        new_state, reward, terminated, truncated, _ = env.step(action)
         if terminated or truncated:
-            self.env.reset()
+            env.reset()
 
-        new_state = DQNAgent.__tensorize_state(self.env.size, new_state)
+        new_state = DQNAgent.__tensorize_state(self.env_size, new_state)
         self.memorize(self.state, new_state, action, reward)
         self.state = new_state
 
-    def train(self):
-        self.q_network.train(True)
-        self.target_network.train(False)
-
-        self.q_network.init_layers()
-        self.copy_q_to_target()
-
+    def experience_initial(self, env):
         for _ in range(self.batch_size):
-            self.experience_replay(explore_only=True)
+            self.experience_replay(env, explore_only=True)
 
-        optimizer = torch.optim.Adam(self.q_network.parameters(), self.ALPHA)
-        EPISODES = 10_000
-        for i in tqdm(range(EPISODES)):
-            self.experience_replay()
+    def get_optimal_action(self, state):
+        state = DQNAgent.__tensorize_state(self.env_size, state)
+        action_q_vals = self.q_network.f(state)
+        return torch.argmax(action_q_vals).item()
 
-            memories = self.memory_buffer.sample(self.batch_size)
+    def train_q_network(self, memories):
+        for memory in memories:
+            target_q_values = self.target_network.f(memory.new_state)
+            target_q_value = self.GAMMA * torch.max(target_q_values) + memory.reward
 
-            for memory in memories:
-                target_q_values = self.target_network.f(memory.new_state)
-                target_q_value = self.GAMMA * torch.max(target_q_values) + memory.reward
+            self.q_network.loss(memory.state, memory.action, target_q_value).backward()
 
-                self.q_network.loss(memory.state, memory.action, target_q_value).backward()
-
-            optimizer.step()
-            optimizer.zero_grad()
-
-            if i % self.T == 0:
-                self.copy_q_to_target()
+            self.optimizer.step()
+            self.optimizer.zero_grad()
 
     def copy_q_to_target(self):
-        self.target_network.load_state_dict(self.q_network.state_dict())
+        self.target_network.load_state_dict(deepcopy(self.q_network.state_dict()))
 
     @staticmethod
     def __tensorize_state(grid_size: int, state) -> torch.Tensor:
@@ -100,13 +104,13 @@ class DQNAgent:
         
         apple_obs = state["apple"]
         apple_obs = dvec(apple_obs) if apple_obs is not None else n_squares
-
+        
         return torch.tensor([
-            float(dvec(state["head"])),
-            float(dvec(state["tail"])),
-            float(apple_obs),
-            float(state["length"])
-        ])
+            dvec(state["head"]),
+            dvec(state["tail"]),
+            apple_obs,
+            state["length"]
+        ]) / n_squares
 
     def to_file(self, base_path = "."):
         from time import time

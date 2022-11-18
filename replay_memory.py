@@ -8,7 +8,7 @@ class ReplayMemory:
         self.memory = []
 
     def push(self, state, new_state, action, reward):
-        """Save a transition, and if full, removes the leftmost transition (oldest)"""
+        """Save a transition, and if full, removes the leftmost transition"""
         if len(self.memory) >= self.capacity:
             self.memory.pop()
         
