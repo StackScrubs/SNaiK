@@ -31,7 +31,7 @@ class DQNAgent:
         self.target_network = ConvolutionalDQN()
 
         self.memory_buffer = ReplayMemory(self.MEMORY_SIZE)
-        self.state = torch.tensor([0. for _ in range(8**2)]).reshape(-1, 1, 8, 8).float()
+        self.state = torch.tensor([0. for _ in range(8**2)]).reshape(1, 1, 8, 8).float()
 
         self.q_network.train(True)
         self.target_network.train(False)
@@ -99,7 +99,7 @@ class DQNAgent:
 
     @staticmethod
     def __tensorize_state(state) -> torch.Tensor:
-        return torch.tensor(state["grid"]).reshape(-1, 1, 8, 8).float()
+        return torch.tensor(state["grid"]).reshape(1, 1, 8, 8).float() / 3
 
     def to_file(self, base_path = "."):
         from time import time
