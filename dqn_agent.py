@@ -11,7 +11,7 @@ from typing_extensions import Self
 class DQNAgent:
 
     ALPHA = 0.01
-    GAMMA = 0.9
+    GAMMA = 0.9999
     MEMORY_SIZE = 50_000
     T = 32
 
@@ -31,7 +31,7 @@ class DQNAgent:
         self.target_network = ConvolutionalDQN()
 
         self.memory_buffer = ReplayMemory(self.MEMORY_SIZE)
-        self.state = torch.tensor([0. for _ in range(8**2)]).reshape(1, 1, 8, 8).float()
+        self.state = None
 
         self.q_network.train(True)
         self.target_network.train(False)
@@ -39,7 +39,8 @@ class DQNAgent:
         self.q_network.init_layers()
         self.copy_q_to_target()
 
-        self.optimizer = torch.optim.Adam(self.q_network.parameters(), self.ALPHA)
+        # SGD because NN is too small for Adam (???????)
+        self.optimizer = torch.optim.AdamW(self.q_network.parameters(), lr=self.ALPHA)
 
     @property
     def memory_sample(self):
@@ -69,24 +70,27 @@ class DQNAgent:
 
         new_state, reward, terminated, truncated, _ = env.step(action)
         if terminated or truncated:
-            env.reset()
+            new_state = env.reset()
 
-        new_state = DQNAgent.__tensorize_state(new_state)
+        new_state = self.__tensorize_state(new_state)
         self.memorize(self.state, new_state, action, reward)
         self.state = new_state
 
     def experience_initial(self, env):
+        self.state = self.__tensorize_state(env.reset())
         for _ in range(self.batch_size):
             self.experience_replay(env, explore_only=True)
+        self.state = self.__tensorize_state(env.reset())
 
     def get_optimal_action(self, state):
-        state = DQNAgent.__tensorize_state(state)
-        action_q_vals = self.q_network.f(state)
+        state = self.__tensorize_state(state)
+        action_q_vals = self.q_network.f(state) 
         return torch.argmax(action_q_vals).item()
 
-    def train_q_network(self, memories):
-        for memory in memories:
-            target_q_values = self.target_network.f(memory.new_state)[0]
+    def train_q_network(self):
+        # batch memory states together instead of looping?        
+        for memory in self.memory_sample:
+            target_q_values = self.target_network.f(memory.new_state)
             target_q_value = self.GAMMA * torch.max(target_q_values) + memory.reward
 
             self.q_network.loss(memory.state, memory.action, target_q_value).backward()
@@ -97,9 +101,8 @@ class DQNAgent:
     def copy_q_to_target(self):
         self.target_network.load_state_dict(deepcopy(self.q_network.state_dict()))
 
-    @staticmethod
-    def __tensorize_state(state) -> torch.Tensor:
-        return torch.tensor(state["grid"]).reshape(1, 1, 8, 8).float() / 3
+    def __tensorize_state(self, state) -> torch.Tensor:
+        return torch.tensor(state["grid"]).reshape(1, 1, self.env_size, self.env_size).float() / 3
 
     def to_file(self, base_path = "."):
         from time import time

@@ -4,7 +4,7 @@ from dqn_agent import DQNAgent
 from tqdm import tqdm
 
 SEED = 1337
-GRID_SIZE = 8
+GRID_SIZE = 5
 
 learning_env = SnakeEnv(render_mode=None, size=GRID_SIZE, seed=SEED)
 render_env = SnakeEnv(render_mode="human", size=GRID_SIZE, seed=SEED)
@@ -25,7 +25,7 @@ def try_render_once():
             render_env.reset()
 
 def main():
-    train_T = 4
+    train_period = 1
 
     agent.experience_initial(learning_env)
     i = 0
@@ -35,10 +35,8 @@ def main():
         
         agent.experience_replay(learning_env)
 
-
-        if i % train_T == 0:
-            memories = agent.memory_sample
-            agent.train_q_network(memories)
+        if i % train_period == 0:
+            agent.train_q_network()
 
         if i % agent.T == 0:
             agent.copy_q_to_target()
@@ -57,3 +55,5 @@ def main():
     #agent.to_file()
 
 # env.close()
+if __name__ == "__main__":
+    main()

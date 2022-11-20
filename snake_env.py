@@ -84,6 +84,9 @@ class SnakeEnv(gym.Env):
         else:
             new_dist_to_apple = self.state.head_position.manhattan_dist(self.state.apple_position)
             reward = dist_to_apple - new_dist_to_apple
+            if reward < 0:
+                reward *= 10
+            
         if won:
             reward = 50
         if not self.state.is_alive:

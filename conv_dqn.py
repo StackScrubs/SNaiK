@@ -23,8 +23,7 @@ class ConvolutionalDQN(nn.Module):
         #return torch.softmax(self.logits(state), dim=0)
         #state.to(torch.device("cpu"))
         #return self.logits(state)
-        eplejus = self.logits(state)
-        #print(eplejus)
+        eplejus = torch.flatten(self.logits(state))
         return eplejus
 
     def loss(self, state, action, target_val):
@@ -40,7 +39,10 @@ class ConvolutionalDQN(nn.Module):
     @staticmethod
     def __init_layer_weights(layer):
         if isinstance(layer, nn.Linear) or isinstance(layer, nn.Conv2d):
-            torch.nn.init.xavier_uniform_(layer.weight)
+            #nn.init.xavier_uniform_(layer.weight)
+            nn.init.kaiming_uniform_(layer.weight)
+            #nn.init.xavier_normal_(layer.weight)
+            #nn.init.kaiming_normal_(layer.weight)
             layer.bias.data.fill_(0.01)
 
     # def accuracy(self): ?
