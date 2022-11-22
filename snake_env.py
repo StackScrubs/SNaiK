@@ -2,6 +2,26 @@ from typing import Any
 import gymnasium as gym
 from gymnasium import spaces
 from snake_state import SnakeState, GridCellType
+from collections.abc import Mapping
+import datetime
+import numpy as np
+
+class LazyDict(Mapping):
+    def __init__(self, *args, **kw):
+        self.__dict = dict(*args, **kw)
+        self.__ldict = {}
+    
+    def __getitem__(self, key):
+        if key not in self.__ldict:
+            self.__ldict[key] = self.__dict[key]()
+        return self.__ldict[key]
+        
+    def __iter__(self):
+        for key in self.__dict.keys():
+            yield self[key]
+            
+    def __len__(self):
+        return len(self.__dict)
 
 class SnakeEnv(gym.Env):
     metadata = {
@@ -61,11 +81,11 @@ class SnakeEnv(gym.Env):
         else:
             new_dist_to_apple = self.state.head_position.manhattan_dist(self.state.apple_position)
             reward = dist_to_apple - new_dist_to_apple
-            
         if won:
-            reward = 5
+            print(f"Homie just won... frfr. Time is {datetime.datetime.now()}")
+            reward = 50
         if not self.state.is_alive:
-            reward = -5
+            reward = -50
             
         terminated = won
         truncated = not self.state.is_alive
@@ -76,14 +96,21 @@ class SnakeEnv(gym.Env):
         return observation, reward, terminated, truncated, info
 
     def _get_obs(self):
-        return {
-            "head": self.state.head_position,
-            "direction": self.state.direction,
-            "tail": self.state.tail_position,
-            "apple": self.state.apple_position,
-            "length": self.state.snake_length
-        }
-
+        get_grid = lambda: np.fromiter(
+            (c[1] if c[1] is not None else 0. for c in self.state.grid_cells), 
+            np.uint8
+        ).reshape(self.size, self.size)
+        
+        return LazyDict({
+            "head": lambda: self.state.head_position,
+            "direction": lambda: self.state.direction,
+            "tail": lambda: self.state.tail_position,
+            "apple": lambda: self.state.apple_position,
+            "length": lambda: self.state.snake_length,
+            "grid": get_grid,
+            "collidables": lambda: self.state.collidables,
+        })
+    
     def reset(self, seed: Any = None):
         if seed is None:
             seed = self.seed

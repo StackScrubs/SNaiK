@@ -1,5 +1,7 @@
 from vec import Vec2
 from math import ceil, pi
+import numpy as np
+from snake_state import Direction
 
 class Discretizer:
     def __init__(self, grid_size: int):
@@ -7,101 +9,55 @@ class Discretizer:
     
     def _discretize_vec(self, vec: Vec2):
         return vec.x*self.grid_size + vec.y
-    
-    def state_space_len(self) -> int:
-        raise NotImplementedError()
-    
-    @property
-    def discretize(self, observation) -> int:
-        raise NotImplementedError()
 
+"""
+Discretizes the entire grid into a discrete state. This contains the full state of the grid.
+""" 
 class FullDiscretizer(Discretizer):
     def __init__(self, grid_size: int):
         Discretizer.__init__(self, grid_size)
     
     @property
     def state_space_len(self) -> int:
-        n_cells = self.grid_size**2
-
-        n_head_pos = n_cells 
-        n_apple_pos = n_cells + 1 # apple can be in any grid cells, or nowhere when game is finished
-        n_tail_pos = n_cells
-        n_length = n_cells
-        return n_head_pos * n_apple_pos * n_tail_pos * n_length
+        n_apple_pos = self.grid_size**2 + 1
+        n_head_pos = self.grid_size**2 + 1
+        n_cell_combinations = 2**(self.grid_size**2)
+        
+        return n_apple_pos * n_head_pos * n_cell_combinations
     
-    def discretize(self, observation) -> int:
-        n_squares = self.grid_size*self.grid_size
-        dvec = lambda v: self._discretize_vec(v)
+    def discretize(self, observation) -> int:             
+        dvec = lambda v: self._discretize_vec(v)  
+        head = observation["head"]
+        apple = observation["apple"] 
+        grid = observation["grid"]
         
-        apple_obs = observation["apple"]
-        apple_obs = dvec(apple_obs) if apple_obs is not None else n_squares
+        apple_max = self.grid_size**2 if apple is not None else (self.grid_size**2)+1
+        apple_pos = dvec(apple) if apple is not None else self.grid_size**2
+        head_pos = dvec(head)
+        
+        v = apple_pos + head_pos * apple_max
+        for cell in grid.flat:
+            if cell not in (0, 1):
+                continue
+            v = v << 1 | cell
+        return v
 
-        return (
-            dvec(observation["head"]) * n_squares**3 +
-            dvec(observation["tail"]) * n_squares**2 +
-            apple_obs * n_squares +
-            (observation["length"] - 1)
-        )
-        
-class AngularDiscretizer(Discretizer):
-    def __init__(self, grid_size: int, n_sectors: int):
-        Discretizer.__init__(self, grid_size)
-        self.n_sectors = n_sectors
-        self.sector_size = (2*pi)/n_sectors
-        
-        # Space 
-        max_dist = (self.grid_size-1)*2
-        self.space_wall_dist = min(max_dist, 4)
-        self.space_n_dirs = 4
-        self.space_n_apple_dirs = self.n_sectors + 1 # apple can be in any sector, or nowhere when game is finished
-        self.space_n_tail_dirs = self.n_sectors + 1  # tail can be same position as head
+"""
+State space is divided into a certain amount of quadrants, determined by the grid size and 
+the quad_size provided as input. State space is a multiple of:
+    number of possible positions of head, 
+    number of possible positions of apple, 
+    number of possible positions of tail,
+    number of directions the snake can travel (4)  
 
-    @property
-    def state_space_len(self) -> int:
-        max_dist = (self.grid_size-1)*2
-        wall_dist_x = self.space_wall_dist
-        wall_dist_y = self.space_wall_dist
-        n_directions = self.space_n_dirs
-        n_apple_dirs = self.space_n_apple_dirs 
-        n_tail_dirs = self.space_n_tail_dirs
-        return wall_dist_x * wall_dist_y * n_directions * n_apple_dirs * n_tail_dirs
-
-    def __sectorize_angle_to_vec(self, src: Vec2, dst: Vec2) -> int:
-        return int(src.angle_to(dst) // self.sector_size)
-    
-    def discretize(self, observation) -> int:
-        # Make the state space as follows:
-        # * Precise head position.
-        # * Direction of snake head.
-        # * Length and angle-ish to apple.
-        # * Length and angle-ish to tail.
-        head_pos: Vec2 = observation["head"]
-        dvec = lambda v: self._discretize_vec(v)
-        svec = lambda v: self.__sectorize_angle_to_vec(head_pos, v)
-        
-        apple_obs = observation["apple"]
-        apple_obs: Vec2 = svec(observation["apple"]) if apple_obs is not None else self.n_sectors
-        
-        tail_obs = observation["tail"]
-        tail_obs = svec(tail_obs) if head_pos != tail_obs else self.n_sectors
-        
-        xdistmin = min(4, min(head_pos.x < 4, head_pos.x > self.grid_size-4))
-        ydistmin = min(4, min(head_pos.y < 4, head_pos.y > self.grid_size-4))
-        
-        return (
-            xdistmin * self.space_n_dirs * self.space_n_tail_dirs * self.space_n_apple_dirs * self.space_wall_dist +
-            ydistmin * self.space_n_dirs * self.space_n_tail_dirs * self.space_n_apple_dirs +
-            apple_obs * self.space_n_dirs * self.space_n_tail_dirs +
-            tail_obs * self.space_n_dirs +
-            observation["direction"]
-        )
-    
-class AggregatingDiscretizer(Discretizer):
+E.g., a grid size of 8 and a quad_size = 4 would divide the grid into four 4x4 quadrants.
+"""
+class QuadDiscretizer(Discretizer):
     def __init__(self, grid_size: int, quad_size: int):
         Discretizer.__init__(self, grid_size)
         self.quad_size = quad_size
         self.n_axis_quads = ceil(self.grid_size / self.quad_size)
-        self.n_quads = self.n_axis_quads*self.n_axis_quads
+        self.n_quads = self.n_axis_quads**2
         
     @property
     def state_space_len(self) -> int:
@@ -130,5 +86,105 @@ class AggregatingDiscretizer(Discretizer):
             dvec(observation["head"]) * 4 * self.n_quads**2 +
             apple_obs * 4 * self.n_quads + 
             qdvec(observation["tail"]) * 4 +
-            observation["direction"]
+            observation["direction"].id
+        )
+
+"""
+[OUTDATED]
+State space is divided into a certain amount of sectors, determined by the n_sectors provided as input. 
+State space is a multiple of: 
+    clamped distance to the wall in x-direction,
+    clamped distance to the wall in y-direction,
+    the number of directions the snake can travel (4), 
+    the number of directions the apple can be in (n_sectors + 1),
+    the number of directions the tail can be in (n_sectors + 1)
+[OUTDATED]
+"""
+class AngularDiscretizer(Discretizer):
+    def __init__(self, grid_size: int, n_sectors: int):
+        Discretizer.__init__(self, grid_size)
+        self.n_sectors = n_sectors
+        self.sector_size = (2*pi)/n_sectors
+        
+        # Space 
+        max_dist = (self.grid_size-1)*2
+        self.clamped_wall_dists = min(max_dist, 4)
+        self.clamped_tail_dists = min(max_dist, 4) + 1 # collidable tail can be non-existent
+        self.n_dirs = 4
+        self.n_apple_dirs = self.n_sectors + 1 # apple can be in any sector, or nowhere when game is finished
+        self.n_tail_dirs = self.n_sectors + 1  # tail can be same position as head
+
+    @property
+    def state_space_len(self) -> int:
+        wall_dist_x = self.clamped_wall_dists
+        wall_dist_y = self.clamped_wall_dists
+        tail_dist = self.clamped_tail_dists
+        n_directions = self.n_dirs
+        n_apple_dirs = self.n_apple_dirs
+        n_tail_dirs = self.n_tail_dirs
+        danger_flag = 2**4
+        print (wall_dist_x * wall_dist_y * n_directions * n_apple_dirs * n_tail_dirs * tail_dist * danger_flag)
+        return wall_dist_x * wall_dist_y * n_directions * n_apple_dirs * n_tail_dirs * tail_dist * danger_flag
+
+    def __sectorize_angle_between_vecs(self, src: Vec2, dst: Vec2) -> int:
+        return int(src.angle_to(dst) // self.sector_size)
+    
+    def discretize(self, observation) -> int:
+        # Make the state space as follows:
+        # * Precise head position.
+        # * Direction of snake head.
+        # * Length and angle-ish to apple.
+        # * Length and angle-ish to tail.
+        direction: Direction = observation["direction"]
+        head_pos: Vec2 = observation["head"]
+        svec = lambda v: self.__sectorize_angle_between_vecs(head_pos, v)
+        
+        apple_obs = observation["apple"]
+        apple_obs: Vec2 = svec(observation["apple"]) if apple_obs is not None else self.n_sectors
+        
+        dangers = {
+            "front": [head_pos + direction.vec, 0],
+            "left": [head_pos + direction.turn_left().vec, 0],
+            "right": [head_pos + direction.turn_right().vec, 0]
+        }
+        
+        closest_tail_dist = float("inf")
+        closest_tail = None
+        for c in observation["collidables"]:
+            dist = head_pos.manhattan_dist(c)
+            if dist <= closest_tail_dist:
+                closest_tail_dist = dist
+                closest_tail = None
+            for danger_name in dangers:
+                danger = dangers[danger_name]
+                if c == danger[0]:
+                    danger[1] = 1
+        
+        tail_obs = svec(closest_tail) if closest_tail is not None else self.n_tail_dirs - 1
+        tail_dist = closest_tail_dist if closest_tail is not None else self.clamped_tail_dists - 1
+        
+        # printed = False
+        # for danger_name in dangers:
+        #     danger = dangers[danger_name]
+        #     if danger[1] == 1:
+        #         print(f"{danger_name} = {danger[1]}" ,end=" ")
+        #         printed = True
+        # if printed:
+        #     from time import sleep
+        #     print(closest_tail_dist)
+        #     sleep(2)
+        
+        danger_flags = dangers["front"][1] << 2 | dangers["left"][1] << 1 | dangers["right"][1]
+
+        wall_dist_min_x = min(4, min(head_pos.x < 4, head_pos.x > self.grid_size-4))
+        wall_dist_min_y = min(4, min(head_pos.y < 4, head_pos.y > self.grid_size-4))
+        
+        return (
+            danger_flags     * self.n_dirs * self.n_tail_dirs * self.n_apple_dirs * self.clamped_wall_dists * self.clamped_wall_dists * self.clamped_tail_dists +
+            tail_dist        * self.n_dirs * self.n_tail_dirs * self.n_apple_dirs * self.clamped_wall_dists * self.clamped_wall_dists +
+            wall_dist_min_x  * self.n_dirs * self.n_tail_dirs * self.n_apple_dirs * self.clamped_wall_dists +
+            wall_dist_min_y  * self.n_dirs * self.n_tail_dirs * self.n_apple_dirs +
+            apple_obs        * self.n_dirs * self.n_tail_dirs +
+            tail_obs         * self.n_dirs +
+            observation["direction"].id
         )

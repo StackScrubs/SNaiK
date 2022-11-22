@@ -42,8 +42,6 @@ class Vec2:
     
     def angle_to(self, other: Self):
         ang = atan2(self.y - other.y, self.x - other.x)
-
         if ang < 0:
             ang += 2*pi
-        #print(f"{self} {other} = {degrees(ang)}")
         return ang
