@@ -4,7 +4,7 @@ import click
 from utils.ctx import CLIContext, AgentContext, EnvironmentContext
 from utils.option_handlers import RequiredByWhenSetTo, OneOf
 from pynput import keyboard
-from discretizer import DISCRETIZER_TYPES, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
+from discretizer import DISCRETIZER_TYPE, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
 
 @click.group()
 @click.option("-a", "--alpha", type=click.FloatRange(0, 1, min_open=True, max_open=True), required=False, default=0.1)
@@ -28,10 +28,10 @@ def entry(ctx, alpha, gamma, size, render, seed):
     ctx.obj = CLIContext(agent_ctx, environment_ctx)
 
 @entry.command()
-@click.option("-d", "--discretizer", type=click.Choice(DISCRETIZER_TYPES), required=False, cls=OneOf, other="file")
+@click.option("-d", "--discretizer", type=click.Choice(DISCRETIZER_TYPE), required=False, cls=OneOf, other="file")
 @click.option("-f", "--file", type=str, required=False, cls=OneOf, other="discretizer")
-@click.option("-ns", "--n-sectors", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPES.ANGULAR.value)
-@click.option("-qs", "--quad-size", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPES.QUAD.value)
+@click.option("-ns", "--n-sectors", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPE.ANGULAR.value)
+@click.option("-qs", "--quad-size", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPE.QUAD.value)
 @click.pass_obj
 def qlearning(ctx, discretizer, file, n_sectors, quad_size):
     print("TYPE=Q LEARNING")
@@ -45,11 +45,11 @@ def qlearning(ctx, discretizer, file, n_sectors, quad_size):
         print(f"DISCRETIZER={discretizer}")
         discretizer_obj = FullDiscretizer(ctx.agent_ctx.size)
 
-        if discretizer is DISCRETIZER_TYPES.ANGULAR:
+        if discretizer is DISCRETIZER_TYPE.ANGULAR:
             print(f"N SECTORS={n_sectors}")
             discretizer_obj = AngularDiscretizer(ctx.agent_ctx.size, n_sectors)
             
-        elif discretizer is DISCRETIZER_TYPES.QUAD:
+        elif discretizer is DISCRETIZER_TYPE.QUAD:
             print(f"QUAD SIZE={quad_size}")
             discretizer_obj = QuadDiscretizer(ctx.agent_ctx.size, quad_size)
             

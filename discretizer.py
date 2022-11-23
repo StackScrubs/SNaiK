@@ -4,7 +4,7 @@ import numpy as np
 from enum import Enum
 from snake_state import Direction
 
-class DISCRETIZER_TYPES(str, Enum):
+class DISCRETIZER_TYPE(str, Enum):
     FULL = "full"
     QUAD = "quad"
     ANGULAR = "ang"
