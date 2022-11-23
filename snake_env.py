@@ -46,6 +46,7 @@ class SnakeEnv(gym.Env):
             "tail": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
             "apple": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
             "length": spaces.Box(0, self.size, dtype=int),
+            "grid": spaces.Box(0, self.size, shape=(2, ), dtype=int),
             "collidables": spaces.Box(0, self.size**2, shape=(1, ), dtype=int),
         })
 
