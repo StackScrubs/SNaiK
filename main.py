@@ -1,17 +1,10 @@
 from snake_env import SnakeEnv
 from qtable import SnakeQLearningAgent
 import click
-from typing import Optional
-from enum import Enum
 from utils.ctx import CLIContext, AgentContext, EnvironmentContext
-from utils.option_handlers import RequiredByWhenSetTo, Mutex
+from utils.option_handlers import RequiredByWhenSetTo, OneOf
 from pynput import keyboard
-from discretizer import FullDiscretizer, QuadDiscretizer, AngularDiscretizer
-
-class DISCRETIZER_TYPES(str, Enum):
-    FULL = "full"
-    QUAD = "quad"
-    ANGULAR = "ang"
+from discretizer import DISCRETIZER_TYPES, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
 
 @click.group()
 @click.option("-a", "--alpha", type=click.FloatRange(0, 1, min_open=True, max_open=True), required=False, default=0.1)
@@ -35,8 +28,8 @@ def entry(ctx, alpha, gamma, size, render, seed):
     ctx.obj = CLIContext(agent_ctx, environment_ctx)
 
 @entry.command()
-@click.option("-d", "--discretizer", type=click.Choice(DISCRETIZER_TYPES), required=False, cls=Mutex, other="file")
-@click.option("-f", "--file", type=str, required=False, cls=Mutex, other="discretizer")
+@click.option("-d", "--discretizer", type=click.Choice(DISCRETIZER_TYPES), required=False, cls=OneOf, other="file")
+@click.option("-f", "--file", type=str, required=False, cls=OneOf, other="discretizer")
 @click.option("-ns", "--n-sectors", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPES.ANGULAR.value)
 @click.option("-qs", "--quad-size", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPES.QUAD.value)
 @click.pass_obj
@@ -50,16 +43,17 @@ def qlearning(ctx, discretizer, file, n_sectors, quad_size):
     
     elif discretizer:
         print(f"DISCRETIZER={discretizer}")
-        discretizer_obj = None # Full by default (once we merge in classes)
-        
+        discretizer_obj = FullDiscretizer(ctx.agent_ctx.size)
+
         if discretizer is DISCRETIZER_TYPES.ANGULAR:
             print(f"N SECTORS={n_sectors}")
-            # set discretizer_obj (once we merge in classes)
+            discretizer_obj = AngularDiscretizer(ctx.agent_ctx.size, n_sectors)
+            
         elif discretizer is DISCRETIZER_TYPES.QUAD:
             print(f"QUAD SIZE={quad_size}")
-            # set discretizer_obj (once we merge in classes)
+            discretizer_obj = QuadDiscretizer(ctx.agent_ctx.size, quad_size)
             
-        agent = SnakeQLearningAgent(ctx.env_ctx.size)#ctx.agent_ctx, discretizer_obj)
+        agent = SnakeQLearningAgent(discretizer_obj)
 
     main(agent, ctx.env_ctx)
 

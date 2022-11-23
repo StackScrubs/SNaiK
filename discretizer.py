@@ -1,7 +1,13 @@
 from vec import Vec2
 from math import ceil, pi
 import numpy as np
+from enum import Enum
 from snake_state import Direction
+
+class DISCRETIZER_TYPES(str, Enum):
+    FULL = "full"
+    QUAD = "quad"
+    ANGULAR = "ang"
 
 class Discretizer:
     def __init__(self, grid_size: int):

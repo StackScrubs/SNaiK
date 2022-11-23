@@ -1,4 +1,4 @@
-from click import Option, UsageError
+from click import Option, UsageError, BadParameter
 
 class RequiredByWhenSetTo(Option):
     def __init__(self, *args, **kwargs):
@@ -13,23 +13,26 @@ class RequiredByWhenSetTo(Option):
 
     def handle_parse_result(self, ctx, opts, args):
         self_present = self.name in opts
-        required_by_set_correct = opts[self.required_by] == self.set_to
+        required_by_set_correct = None
+        if self.required_by in opts:
+            required_by_set_correct = opts[self.required_by] == self.set_to
 
         if required_by_set_correct and not self_present:
             raise UsageError(
                 f"Illegal usage: {self.name} is required when {self.required_by} is set to {self.set_to}"
+                 + ". See --help for more information"
             )
                 
         return super(RequiredByWhenSetTo, self).handle_parse_result(ctx, opts, args)
 
-class Mutex(Option):
+class OneOf(Option):
     def __init__(self, *args, **kwargs):
         self.other = kwargs.pop("other")
         assert self.other, "'other' parameter required"
         kwargs["help"] = (kwargs.get("help", "") +
             f" NOTE: This option is mutually exclusive with the other option '{self.other}'"
         ).strip()
-        super(Mutex, self).__init__(*args, **kwargs)
+        super(OneOf, self).__init__(*args, **kwargs)
 
     def handle_parse_result(self, ctx, opts, args):
         self_present = self.name in opts
@@ -39,5 +42,10 @@ class Mutex(Option):
             raise UsageError(
                 f"Illegal usage: {self.other} cannot be used with {self.name}"
             )
+        elif not other_present and not self_present:
+            raise UsageError(
+                f"Illegal usage: one of the options '{self.other}' and '{self.name}' must be specified"
+                + ". See --help for more information"
+            )
 
-        return super(Mutex, self).handle_parse_result(ctx, opts, args)
+        return super(OneOf, self).handle_parse_result(ctx, opts, args)
