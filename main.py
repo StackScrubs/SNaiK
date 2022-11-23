@@ -110,24 +110,18 @@ class AgentRunner:
 
 def main(agent, env_ctx):
     
-    #agent = SnakeQLearningAgent(FullDiscretizer(GRID_SIZE))
-    #agent = SnakeQLearningAgent(QuadDiscretizer(GRID_SIZE, 1))
-    #agent = SnakeQLearningAgent(AngularDiscretizer(GRID_SIZE, 16))
-    
     def on_press(key):
         if not isinstance(key, keyboard.KeyCode):
             return
 
         if key.char == "s":
-            # Save agent/model
             print("Saving current model state...")
             file = agent.to_file()
             print(f"Saved model state as \"{file}\".")
-        elif key.char == "g":
-            # Create performance graph/plot
-            print("Creating performance graph of current learning...")
             
-            # Save graph/plot
+        elif key.char == "g":
+            print("Creating performance graph of current learning...")
+            # ...
             print("Graph created and saved.")
         
         return
