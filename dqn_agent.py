@@ -13,7 +13,7 @@ class DQNAgent:
     ALPHA = 0.01
     GAMMA = 0.9999
     MEMORY_SIZE = 50_000
-    T = 32
+    T = 100
 
     EXPLORE_PROB = 0.9
     EXPLORE_PROB_END = 0.05
@@ -21,33 +21,31 @@ class DQNAgent:
     EPS_START = 0.9
     EPS_END = 0.05  # Petition to rename to this? Sice we use epsilon in get_action()
     EPS_DECAY = 200
+    
+    CHANNELS = 3
 
     def __init__(self, grid_size):
         self.batch_size = 32
         self.total_steps = 0
         self.grid_size = grid_size
 
-        self.q_network = ConvolutionalDQN(self.grid_size)
-        self.target_network = ConvolutionalDQN(self.grid_size)
+        self.policy_net = ConvolutionalDQN(self.grid_size)
+        self.target_net = ConvolutionalDQN(self.grid_size)
 
-        self.memory_buffer = ReplayMemory(self.MEMORY_SIZE)
+        self.replay_memory = ReplayMemory(self.MEMORY_SIZE)
         self.state = None
 
-        self.q_network.train(True)
-        self.target_network.train(False)
+        self.policy_net.train(True)
+        self.target_net.train(False)
         
-        self.q_network.init_layers()
+        self.policy_net.init_layers()
         self.copy_q_to_target()
 
         # SGD because NN is too small for Adam (???????)
-        self.optimizer = torch.optim.AdamW(self.q_network.parameters(), lr=self.ALPHA)
-
-    @property
-    def memory_sample(self):
-        return self.memory_buffer.sample(self.batch_size)
+        self.optimizer = torch.optim.AdamW(self.policy_net.parameters(), lr=self.ALPHA)
 
     def memorize(self, state: torch.Tensor, new_state: torch.Tensor, action: int, reward: int): 
-        self.memory_buffer.push(state, new_state, action, reward)
+        self.replay_memory.push(state, new_state, action, reward)
 
     def get_random_action(self):
         return random.randint(0, 2)
@@ -60,9 +58,12 @@ class DQNAgent:
         self.total_steps += 1
 
         if random.random() < epsilon:
+            #print(f"bro doing the rng {self.total_steps}")
             return self.get_random_action()
         else:
-            action_q_vals = self.q_network.f(self.state)
+            action_q_vals = None
+            with torch.no_grad():
+                action_q_vals = self.policy_net(self.state.view(1, self.CHANNELS, self.grid_size, self.grid_size))
             return torch.argmax(action_q_vals).item()
 
     def experience_replay(self, env, explore_only=False):
@@ -84,30 +85,39 @@ class DQNAgent:
 
     def get_optimal_action(self, state):
         state = self.__tensorize_state(state)
-        action_q_vals = self.q_network.f(state) 
+        with torch.no_grad():
+            action_q_vals = self.policy_net(state.view(1, self.CHANNELS, self.grid_size, self.grid_size)) 
         return torch.argmax(action_q_vals).item()
 
     def train_q_network(self):
-        states, new_states, actions, rewards = self.memory_buffer.sample_batched(self.batch_size)
+        states, new_states, actions, rewards = self.replay_memory.sample_batched(self.batch_size)
         
         # Reshape the states so they fit in the DQN model
-        states = states.view(self.batch_size, 1, self.grid_size, self.grid_size)
-        new_states = new_states.view(self.batch_size, 1, self.grid_size, self.grid_size)
+        states = states.view(self.batch_size, self.CHANNELS, self.grid_size, self.grid_size)
+        new_states = new_states.view(self.batch_size, self.CHANNELS, self.grid_size, self.grid_size)
         
-        q_arrays = self.target_network.f(new_states)
+        q_arrays = None
+        with torch.no_grad():
+            q_arrays = self.target_net(new_states)
         q_max, _ = torch.max(q_arrays, axis=1, keepdim=True)
         q_values = torch.multiply(q_max, self.GAMMA) + rewards.view(-1, 1)
 
-        self.q_network.loss(states, actions, q_values).backward()
-        
-        self.optimizer.step()
         self.optimizer.zero_grad()
+        self.policy_net.loss(states, actions, q_values).backward()
+
+        for param in self.policy_net.parameters():
+            param.grad.data.clamp(-1, 1)
+        self.optimizer.step()
 
     def copy_q_to_target(self):
-        self.target_network.load_state_dict(deepcopy(self.q_network.state_dict()))
+        self.target_net.load_state_dict(deepcopy(self.policy_net.state_dict()))
 
     def __tensorize_state(self, state) -> torch.Tensor:
-        return torch.tensor(state["grid"]).reshape(self.grid_size, self.grid_size).float() / 3
+        t = torch.tensor(state["grid"], dtype=torch.uint8)
+        s = torch.zeros((3, self.grid_size, self.grid_size))
+        for i in range(0, self.CHANNELS):
+            s[i] = torch.where(t == i + 1, t // (i + 1), 0)
+        return s
 
     def to_file(self, base_path = "."):
         from time import time
