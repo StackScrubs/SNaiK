@@ -30,18 +30,6 @@ class QTable:
     def get_epsilon(episode: int) -> float:
         return max(0.01, min(1, 1 - np.log10((episode + 1) / 25)))
 
-    def to_file(self, base_path = "."):
-        from time import time
-        pickle_dump = dumps(self)
-        with open(f"{base_path}/q_model_{time()}.qbf", "wb") as f:
-            f.write(pickle_dump)
-
-    @staticmethod
-    def from_file(file_path) -> Self:
-        with open(file_path, "rb") as f:
-            agent = loads(f.read())
-            return agent
-
     def _bellman_equation(self, transition: Transition) -> float:
         return self.alpha*(
             transition.reward
@@ -76,3 +64,18 @@ class SnakeQLearningAgent:
             return np.random.randint(self.__action_space_len - 1)
         else:
             return self.q.policy(new_state)
+    
+    def to_file(self, base_path = ".") -> str:
+        from time import time
+        pickle_dump = dumps(self)
+        file_name = f"{base_path}/q_model_{time()}.qbf"
+        with open(file_name, "wb") as f:
+            f.write(pickle_dump)
+
+        return file_name
+
+    @staticmethod
+    def from_file(file_path) -> Self:
+        with open(file_path, "rb") as f:
+            agent = loads(f.read())
+            return agent

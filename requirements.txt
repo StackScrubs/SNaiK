@@ -3,3 +3,5 @@ tqdm
 gymnasium
 pygame
 typing_extensions
+click
+pynput
