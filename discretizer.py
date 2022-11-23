@@ -109,7 +109,6 @@ class AngularDiscretizer(Discretizer):
         n_apple_dirs = self.n_apple_dirs
         n_tail_dirs = self.n_tail_dirs
         danger_flag = 2**4
-        print (wall_dist_x * wall_dist_y * n_directions * n_apple_dirs * n_tail_dirs * tail_dist * danger_flag)
         return wall_dist_x * wall_dist_y * n_directions * n_apple_dirs * n_tail_dirs * tail_dist * danger_flag
 
     def __sectorize_angle_between_vecs(self, src: Vec2, dst: Vec2) -> int:

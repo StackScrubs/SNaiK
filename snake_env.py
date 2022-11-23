@@ -45,7 +45,8 @@ class SnakeEnv(gym.Env):
             "direction": spaces.Discrete(4),
             "tail": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
             "apple": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
-            "length": spaces.Box(0, self.size, dtype=int)
+            "length": spaces.Box(0, self.size, dtype=int),
+            "collidables": spaces.Box(0, self.size**2, shape=(1, ), dtype=int),
         })
 
         # Action space for turning left or right, or remaining idle
@@ -76,13 +77,12 @@ class SnakeEnv(gym.Env):
         self.steps += 1
         reward = 0
         if ate:
-            reward = 5 / self.steps
+            reward = 1 / self.steps
             self.steps = 0
         else:
             new_dist_to_apple = self.state.head_position.manhattan_dist(self.state.apple_position)
             reward = dist_to_apple - new_dist_to_apple
         if won:
-            print(f"Homie just won... frfr. Time is {datetime.datetime.now()}")
             reward = 50
         if not self.state.is_alive:
             reward = -50
