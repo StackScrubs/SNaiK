@@ -6,6 +6,7 @@ from enum import Enum
 from utils.ctx import CLIContext, AgentContext, EnvironmentContext
 from utils.option_handlers import RequiredByWhenSetTo, Mutex
 from pynput import keyboard
+from discretizer import FullDiscretizer, QuadDiscretizer, AngularDiscretizer
 
 class DISCRETIZER_TYPES(str, Enum):
     FULL = "full"
@@ -114,6 +115,11 @@ class AgentRunner:
                 self.learning_env.reset()
 
 def main(agent, env_ctx):
+    
+    #agent = SnakeQLearningAgent(FullDiscretizer(GRID_SIZE))
+    #agent = SnakeQLearningAgent(QuadDiscretizer(GRID_SIZE, 1))
+    #agent = SnakeQLearningAgent(AngularDiscretizer(GRID_SIZE, 16))
+    
     def on_press(key):
         if not isinstance(key, keyboard.KeyCode):
             return
