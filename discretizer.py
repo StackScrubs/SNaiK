@@ -42,15 +42,9 @@ class FullDiscretizer(Discretizer):
             v = v << 1 | cell
         return v
 
-"""
-State space is divided into a certain amount of quadrants, determined by the grid size and 
-the quad_size provided as input. State space is a multiple of:
-    number of possible positions of head, 
-    number of possible positions of apple, 
-    number of possible positions of tail,
-    number of directions the snake can travel (4)  
-
-E.g., a grid size of 8 and a quad_size = 4 would divide the grid into four 4x4 quadrants.
+""" 
+QuadDiscretizer discretizes state into a certain amount of quadrants, where the snake is aware of which 
+quadrant the apple and tail is located in, which way the snake is headed, as well as the exact location of the head.  
 """
 class QuadDiscretizer(Discretizer):
     def __init__(self, grid_size: int, quad_size: int):
@@ -62,13 +56,13 @@ class QuadDiscretizer(Discretizer):
     @property
     def state_space_len(self) -> int:
         n_head_pos = self.grid_size**2
-        n_apple_pos = self.n_quads + 1 # apple can be in any grid cells, or nowhere when game is finished
+        n_apple_pos = self.n_quads + 1 # apple can be in any quads, or nowhere when game is finished
         n_tail_pos = self.n_quads
         n_directions = 4
         return n_head_pos * n_apple_pos * n_tail_pos * n_directions
     
     def __quad_discretize_vec(self, vec: Vec2) -> int:
-        return (vec.x // self.quad_size) * self.n_axis_quads + vec.y // self.quad_size
+        return (vec.x // self.quad_size) * self.n_axis_quads + (vec.y // self.quad_size)
     
     def discretize(self, observation) -> int:
         # Make the state space as follows:
@@ -90,15 +84,7 @@ class QuadDiscretizer(Discretizer):
         )
 
 """
-[OUTDATED]
-State space is divided into a certain amount of sectors, determined by the n_sectors provided as input. 
-State space is a multiple of: 
-    clamped distance to the wall in x-direction,
-    clamped distance to the wall in y-direction,
-    the number of directions the snake can travel (4), 
-    the number of directions the apple can be in (n_sectors + 1),
-    the number of directions the tail can be in (n_sectors + 1)
-[OUTDATED]
+AngularDiscretizer discretizes state as relative angle, encoded into circle sectors, and position of objects as related to snake's head.
 """
 class AngularDiscretizer(Discretizer):
     def __init__(self, grid_size: int, n_sectors: int):
@@ -112,8 +98,8 @@ class AngularDiscretizer(Discretizer):
         self.clamped_tail_dists = min(max_dist, 4) + 1 # collidable tail can be non-existent
         self.n_dirs = 4
         self.n_apple_dirs = self.n_sectors + 1 # apple can be in any sector, or nowhere when game is finished
-        self.n_tail_dirs = self.n_sectors + 1  # tail can be same position as head
-
+        self.n_tail_dirs = self.n_sectors + 1  # there can be no tails that the snake can collide with
+        
     @property
     def state_space_len(self) -> int:
         wall_dist_x = self.clamped_wall_dists
@@ -154,7 +140,7 @@ class AngularDiscretizer(Discretizer):
             dist = head_pos.manhattan_dist(c)
             if dist <= closest_tail_dist:
                 closest_tail_dist = dist
-                closest_tail = None
+                closest_tail = c
             for danger_name in dangers:
                 danger = dangers[danger_name]
                 if c == danger[0]:
@@ -162,18 +148,7 @@ class AngularDiscretizer(Discretizer):
         
         tail_obs = svec(closest_tail) if closest_tail is not None else self.n_tail_dirs - 1
         tail_dist = closest_tail_dist if closest_tail is not None else self.clamped_tail_dists - 1
-        
-        # printed = False
-        # for danger_name in dangers:
-        #     danger = dangers[danger_name]
-        #     if danger[1] == 1:
-        #         print(f"{danger_name} = {danger[1]}" ,end=" ")
-        #         printed = True
-        # if printed:
-        #     from time import sleep
-        #     print(closest_tail_dist)
-        #     sleep(2)
-        
+
         danger_flags = dangers["front"][1] << 2 | dangers["left"][1] << 1 | dangers["right"][1]
 
         wall_dist_min_x = min(4, min(head_pos.x < 4, head_pos.x > self.grid_size-4))
