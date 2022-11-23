@@ -1,19 +1,40 @@
 from __future__ import annotations
 from collections import deque
 from typing_extensions import Self
-from typing import Any, Tuple
+from typing import Any
 from random import Random
-from enum import Enum
+from enum import IntEnum
 from vec import Vec2
+from itertools import islice
 
-DIRECTIONS = [
-    Vec2(0, 1),  # Up
-    Vec2(1, 0),  # Right
-    Vec2(0, -1),  # Down
-    Vec2(-1, 0),  # Left
-]
+class Direction:
+    DIRECTIONS = [
+        Vec2(0, -1),  # Up
+        Vec2(1, 0),  # Right
+        Vec2(0, 1),  # Down
+        Vec2(-1, 0),  # Left
+    ]
+    
+    def __init__(self, direction_id):
+        self.__direction_index = direction_id
+        
+    @property
+    def vec(self) -> Vec2:
+        return Direction.DIRECTIONS[self.__direction_index]
+    
+    @property
+    def id(self) -> int:
+        return self.__direction_index
+        
+    def turn_left(self) -> Self:
+        return Direction(
+            (self.__direction_index - 1 + len(self.DIRECTIONS)) % len(self.DIRECTIONS)
+        )
 
-class GridCellType(Enum):
+    def turn_right(self) -> Self:
+        return Direction((self.__direction_index + 1) % len(self.DIRECTIONS))   
+
+class GridCellType(IntEnum):
     SNAKE_BODY = 1
     SNAKE_HEAD = 2
     APPLE = 3
@@ -128,7 +149,7 @@ class SnakeState:
         self.__snake = deque([self.__grid.new_free_cell(GridCellType.SNAKE_HEAD)])
         self.__alive = True
         self.__apple = self.__grid.new_free_cell(GridCellType.APPLE)
-        self.__direction_index = self.__random.randint(0, len(DIRECTIONS) - 1)
+        self.__direction = Direction(self.__random.randint(0, len(Direction.DIRECTIONS) - 1))
         self.__to_grow = 0
 
     @property
@@ -150,6 +171,14 @@ class SnakeState:
             if self.__apple is not None
             else None
         )
+        
+    @property
+    def collidables(self) -> list[Vec2]:
+        return (b.position for b in islice(self.__snake, 4, None))
+
+    @property
+    def direction(self) -> Direction:
+        return self.__direction
 
     @property
     def snake_length(self) -> int:
@@ -165,12 +194,10 @@ class SnakeState:
 
     # Snakes relative turn direction, converted to constant env direction
     def turn_left(self):
-        self.__direction_index = (
-            self.__direction_index - 1 + len(DIRECTIONS)
-        ) % len(DIRECTIONS)
+        self.__direction = self.__direction.turn_left()
 
     def turn_right(self):
-        self.__direction_index = (self.__direction_index + 1) % len(DIRECTIONS)
+        self.__direction = self.__direction.turn_right()
 
     def update(self):
         if not self.__alive:
@@ -182,7 +209,7 @@ class SnakeState:
     def _snake_step(self) -> bool:
         head = self.__snake[0]
         
-        next_head_pos = head.position + DIRECTIONS[self.__direction_index]
+        next_head_pos = head.position + self.__direction.vec
         if not next_head_pos.within(
             Vec2(0, 0),
             Vec2(self.__grid.size - 1, self.__grid.size - 1)

@@ -1,8 +1,9 @@
 from snake_env import SnakeEnv
 from qtable import SnakeQLearningAgent
+from discretizer import FullDiscretizer, QuadDiscretizer, AngularDiscretizer
 
 SEED = None
-GRID_SIZE = 6
+GRID_SIZE = 8
 
 learning_env = SnakeEnv(render_mode=None, size=GRID_SIZE, seed=SEED)
 render_env = SnakeEnv(render_mode="human", size=GRID_SIZE, seed=SEED)
@@ -10,7 +11,9 @@ render_obs = render_env.reset()
 
 terminated, truncated = False, False
 
-agent = SnakeQLearningAgent(GRID_SIZE)
+#agent = SnakeQLearningAgent(FullDiscretizer(GRID_SIZE))
+agent = SnakeQLearningAgent(QuadDiscretizer(GRID_SIZE, 1))
+#agent = SnakeQLearningAgent(AngularDiscretizer(GRID_SIZE, 16))
 
 def try_render_once():
     global render_obs
@@ -25,6 +28,7 @@ def try_render_once():
 def main():
     observation = learning_env.reset()
     reward = 0
+    
     while True:
         try_render_once()
         
