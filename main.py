@@ -122,7 +122,8 @@ def main(agent, env_ctx):
         elif key.char == "g":
             print("Creating performance graph of current learning...")
             # ...
-            print("Graph created and saved.")
+            file = None
+            print(f"Graph created and saved as \"{file}\".")
         
         return
     
