@@ -8,6 +8,9 @@ class AgentContext:
         self.alpha = alpha
         self.gamma = gamma
         self.size = size
+        
+    def __str__(self) -> str:
+        return f"A={self.alpha}_G={self.gamma}_SZ={self.size}"
 
 class EnvironmentContext:
     def __init__(self, size, render, seed):

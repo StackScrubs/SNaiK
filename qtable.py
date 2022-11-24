@@ -79,3 +79,7 @@ class SnakeQLearningAgent:
         with open(file_path, "rb") as f:
             agent = loads(f.read())
             return agent
+        
+    def __str__(self) -> str:
+        return f"_QLEARNING" + str(self.discretizer)
+        

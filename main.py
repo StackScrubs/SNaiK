@@ -1,5 +1,6 @@
 from snake_env import SnakeEnv
 from qtable import SnakeQLearningAgent
+from graphing import Grapher
 import click
 from utils.ctx import CLIContext, AgentContext, EnvironmentContext
 from utils.option_handlers import RequiredByWhenSetTo, OneOf
@@ -55,7 +56,7 @@ def qlearning(ctx, discretizer, file, n_sectors, quad_size):
             
         agent = SnakeQLearningAgent(discretizer_obj)
 
-    main(agent, ctx.env_ctx)
+    main(agent, ctx.agent_ctx, ctx.env_ctx)
 
 @entry.command()
 @click.option("-f", "--file", type=str, required=False)
@@ -76,6 +77,7 @@ def dqn(ctx, file):
 class AgentRunner:
     def __init__(self, agent, env_ctx):
         self.agent = agent
+        self.grapher = Grapher()
         self.render = env_ctx.render
 
         self.learning_env = SnakeEnv(render_mode=None, size=env_ctx.size, seed=env_ctx.seed)
@@ -96,19 +98,28 @@ class AgentRunner:
                 self.render_env.reset()
 
     def run(self):
+        episode, score = 0, 0
         observation = self.learning_env.reset()
         reward = 0
         while True:
-            if self.render:
-                self._try_render_once()
+            episode += 1
             
-            action = self.agent.update(observation, reward)
-            observation, reward, terminated, truncated, _ = self.learning_env.step(action)
+            # Steps in single episode
+            while True:
+                if self.render:
+                    self._try_render_once()
+                
+                action = self.agent.update(observation, reward)
+                observation, reward, terminated, truncated, score = self.learning_env.step(action)
+                
+                if terminated or truncated:
+                    break
             
-            if terminated or truncated:
-                self.learning_env.reset()
+            self.grapher.update(episode, score)
+            self.learning_env.reset()
 
-def main(agent, env_ctx):
+def main(agent, agent_ctx, env_ctx):
+    agent_runner = AgentRunner(agent, env_ctx)
     
     def on_press(key):
         if not isinstance(key, keyboard.KeyCode):
@@ -122,7 +133,8 @@ def main(agent, env_ctx):
         elif key.char == "g":
             print("Creating performance graph of current learning...")
             # ...
-            file = None
+            file_name = str(agent_ctx) + str(agent)
+            file = agent_runner.grapher.avg_score_graph(".", file_name)
             print(f"Graph created and saved as \"{file}\".")
         
         return
@@ -132,7 +144,6 @@ def main(agent, env_ctx):
     )
     listener.start()
     
-    agent_runner = AgentRunner(agent, env_ctx)
     agent_runner.run()
 
 if __name__ == "__main__":
