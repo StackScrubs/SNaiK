@@ -36,6 +36,9 @@ class QTable:
             + self.gamma*np.max(self.__q_table[transition.new_state, :])
             - self.__q_table[transition.state, transition.action]
         )
+        
+    def __str__(self) -> str:
+        return f"A={self.alpha}_G={self.gamma}"
     
 class SnakeQLearningAgent:
     def __init__(self, discretizer: Discretizer):
@@ -81,5 +84,5 @@ class SnakeQLearningAgent:
             return agent
         
     def __str__(self) -> str:
-        return f"_QLEARNING" + str(self.discretizer)
+        return str(self.q) + f"_SZ={self.discretizer.grid_size}_QLEARNING" + str(self.discretizer)
         

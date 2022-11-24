@@ -50,7 +50,7 @@ def qlearning(ctx, discretizer, file, n_sectors, quad_size):
         })[discretizer]()
         agent = SnakeQLearningAgent(disc)
 
-    asyncio.run(main(agent, ctx.agent_ctx, ctx.env_ctx))
+    asyncio.run(main(agent, ctx.env_ctx))
 
 @entry.command()
 @click.option("-f", "--file", type=str, required=False)
