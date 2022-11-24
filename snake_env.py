@@ -11,17 +11,33 @@ class LazyDict(Mapping):
         self.__dict = dict(*args, **kw)
         self.__ldict = {}
     
+    def __init_lazy(self, key):
+        if key not in self.__ldict and key in self.__dict:
+            self.__ldict[key] = self.__dict.pop(key)()
+            
     def __getitem__(self, key):
-        if key not in self.__ldict:
-            self.__ldict[key] = self.__dict[key]()
+        self.__init_lazy(key)
         return self.__ldict[key]
         
     def __iter__(self):
-        for key in self.__dict.keys():
+        for key in self.__ldict.keys():
+            yield self[key]
+        keys = list(self.__dict.keys())
+        for key in keys:
             yield self[key]
             
     def __len__(self):
-        return len(self.__dict)
+        return len(self.__dict) + len(self.__ldict)
+    
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        
+    def __getstate__(self):
+        keys = list(self.__dict.keys())
+        for key in keys:
+            self.__init_lazy(key)
+        return self.__dict__
+        
 
 class SnakeEnv(gym.Env):
     metadata = {
@@ -179,3 +195,9 @@ class SnakeEnv(gym.Env):
 
             pygame.display.quit()
             pygame.quit()
+            
+    # def __getstate__(self):
+    #     return (self.render_mode, self.seed, self.size, )
+    
+    # def __setstate__(self, state):
+    #     self.__init__(state[0], state[1], state[2])
