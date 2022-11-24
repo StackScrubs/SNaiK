@@ -3,7 +3,9 @@ from qtable import SnakeQLearningAgent
 import click
 from utils.ctx import CLIContext, AgentContext, EnvironmentContext
 from utils.option_handlers import RequiredByWhenSetTo, OneOf
-from pynput import keyboard
+import asyncio
+import sys
+from aioconsole import ainput, aprint
 from discretizer import DISCRETIZER_TYPE, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
 
 @click.group()
@@ -55,7 +57,7 @@ def qlearning(ctx, discretizer, file, n_sectors, quad_size):
             
         agent = SnakeQLearningAgent(discretizer_obj)
 
-    main(agent, ctx.env_ctx)
+    asyncio.run(main(agent, ctx.env_ctx))
 
 @entry.command()
 @click.option("-f", "--file", type=str, required=False)
@@ -95,7 +97,7 @@ class AgentRunner:
             if terminated or truncated:
                 self.render_env.reset()
 
-    def run(self):
+    async def run(self):
         observation = self.learning_env.reset()
         reward = 0
         while True:
@@ -107,33 +109,30 @@ class AgentRunner:
             
             if terminated or truncated:
                 self.learning_env.reset()
+            
+            await asyncio.sleep(0)
 
-def main(agent, env_ctx):
-    
-    def on_press(key):
-        if not isinstance(key, keyboard.KeyCode):
-            return
-
-        if key.char == "s":
+async def parse_cmd(agent):
+    while True:
+        cmd = await ainput("Write 'save' or 'graph': ")
+        if cmd == "save":
             print("Saving current model state...")
             file = agent.to_file()
             print(f"Saved model state as \"{file}\".")
-            
-        elif key.char == "g":
+        elif cmd == "graph":
             print("Creating performance graph of current learning...")
             # ...
             file = None
             print(f"Graph created and saved as \"{file}\".")
-        
-        return
+        else:
+            await aprint("Wdym? 🤔")
     
-    listener = keyboard.Listener(
-        on_press=on_press
-    )
-    listener.start()
-    
+async def main(agent, env_ctx):    
     agent_runner = AgentRunner(agent, env_ctx)
-    agent_runner.run()
+    await asyncio.gather(
+        parse_cmd(agent),
+        agent_runner.run(),
+    )
 
 if __name__ == "__main__":
     entry()
