@@ -98,7 +98,6 @@ class AgentRunner:
         while True:
             episode += 1
             
-            # Steps in single episode
             while True:
                 if self.render:
                     self._try_render_once()
@@ -121,12 +120,13 @@ async def parse_cmd(agent_runner):
             print("Saving current model state...")
             file = agent_runner.agent.to_file()
             print(f"Saved model state as \"{file}\".")
+            
         elif cmd == "graph":
             print("Creating performance graph of current learning...")
-            # ...
             file_name = str(agent_runner.agent)
             file = agent_runner.grapher.avg_score_graph(".", file_name)
             print(f"Graph created and saved as \"{file}\".")
+            
         else:
             await aprint(f"Invalid command '{cmd}'.")
     

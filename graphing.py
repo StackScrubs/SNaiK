@@ -14,13 +14,8 @@ class Grapher:
         self.scores.append(score), 
     
     def _list_to_avg_chunks(self, list, chunk_size):
-        outer = [list[i:i + chunk_size] for i in range(0, len(list), chunk_size)]
-        avg_chunks = [0] * len(outer)
-        for i, inner in enumerate(outer):
-            avg = sum(inner) / len(inner)
-            avg_chunks[i] = avg
-            
-        return avg_chunks
+        chunks = [list[i:i + chunk_size] for i in range(0, len(list), chunk_size)]
+        return [sum(chunks[i]) / len(chunks[i]) for i in range(len(chunks))]
     
     def avg_score_graph(self, base_path, file_name) -> str:
         chunk_size = floor(len(self.episodes) / self.NUMBER_OF_CHUNKS)
