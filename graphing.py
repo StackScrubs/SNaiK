@@ -23,6 +23,9 @@ class Grapher:
         score_plots = self._list_to_avg_chunks(self.scores, chunk_size)
         
         plt.plot(episode_plots, score_plots)
+        plt.xlabel("Episode")
+        plt.ylabel("Score")
         file_name = f"{base_path}/score_graph_{file_name}.png"
+        plt.legend()
         plt.savefig(file_name)
         return file_name
