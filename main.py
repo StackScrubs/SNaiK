@@ -35,27 +35,19 @@ def entry(ctx, alpha, gamma, size, render, seed):
 @click.option("-ns", "--n-sectors", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPE.ANGULAR.value)
 @click.option("-qs", "--quad-size", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPE.QUAD.value)
 @click.pass_obj
-def qlearning(ctx, discretizer, file, n_sectors, quad_size):
-    print("TYPE=Q LEARNING")
+def qlearning(ctx, discretizer_name, file, n_sectors, quad_size):
     agent = None
     
     if file:
-        print(f"FROM FILE={file}")
         agent = SnakeQLearningAgent.from_file(file)
     
-    elif discretizer:
-        print(f"DISCRETIZER={discretizer}")
-        discretizer_obj = FullDiscretizer(ctx.agent_ctx.size)
-
-        if discretizer is DISCRETIZER_TYPE.ANGULAR:
-            print(f"N SECTORS={n_sectors}")
-            discretizer_obj = AngularDiscretizer(ctx.agent_ctx.size, n_sectors)
-            
-        elif discretizer is DISCRETIZER_TYPE.QUAD:
-            print(f"QUAD SIZE={quad_size}")
-            discretizer_obj = QuadDiscretizer(ctx.agent_ctx.size, quad_size)
-            
-        agent = SnakeQLearningAgent(discretizer_obj)
+    elif discretizer_name:
+        discretizer = ({
+            DISCRETIZER_TYPE.FULL: lambda: FullDiscretizer(ctx.agent_ctx.size),
+            DISCRETIZER_TYPE.ANGULAR: lambda: AngularDiscretizer(ctx.agent_ctx.size, n_sectors),
+            DISCRETIZER_TYPE.QUAD: lambda: QuadDiscretizer(ctx.agent_ctx.size, quad_size)
+        })[discretizer_name]()
+        agent = SnakeQLearningAgent(discretizer)
 
     asyncio.run(main(agent, ctx.env_ctx))
 
