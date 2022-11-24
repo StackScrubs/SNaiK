@@ -30,24 +30,24 @@ def entry(ctx, alpha, gamma, size, render, seed):
     ctx.obj = CLIContext(agent_ctx, environment_ctx)
 
 @entry.command()
-@click.option("-d", "--discretizer", "discretizer_name", type=click.Choice(DISCRETIZER_TYPE), required=False, cls=OneOf, other="file")
+@click.option("-d", "--discretizer", type=click.Choice(DISCRETIZER_TYPE), required=False, cls=OneOf, other="file")
 @click.option("-f", "--file", type=str, required=False, cls=OneOf, other="discretizer")
 @click.option("-ns", "--n-sectors", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPE.ANGULAR.value)
 @click.option("-qs", "--quad-size", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPE.QUAD.value)
 @click.pass_obj
-def qlearning(ctx, discretizer_name, file, n_sectors, quad_size):
+def qlearning(ctx, discretizer, file, n_sectors, quad_size):
     agent = None
     
     if file:
         agent = SnakeQLearningAgent.from_file(file)
     
-    elif discretizer_name:
-        discretizer = ({
+    elif discretizer:
+        disc = ({
             DISCRETIZER_TYPE.FULL: lambda: FullDiscretizer(ctx.agent_ctx.size),
             DISCRETIZER_TYPE.ANGULAR: lambda: AngularDiscretizer(ctx.agent_ctx.size, n_sectors),
             DISCRETIZER_TYPE.QUAD: lambda: QuadDiscretizer(ctx.agent_ctx.size, quad_size)
-        })[discretizer_name]()
-        agent = SnakeQLearningAgent(discretizer)
+        })[discretizer]()
+        agent = SnakeQLearningAgent(disc)
 
     asyncio.run(main(agent, ctx.env_ctx))
 
