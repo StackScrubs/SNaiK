@@ -125,7 +125,7 @@ async def parse_cmd(agent):
             file = None
             print(f"Graph created and saved as \"{file}\".")
         else:
-            await aprint("Wdym? 🤔")
+            await aprint(f"Invalid command '{cmd}'.")
     
 async def main(agent, env_ctx):    
     agent_runner = AgentRunner(agent, env_ctx)
