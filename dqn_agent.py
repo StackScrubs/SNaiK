@@ -1,26 +1,28 @@
-from copy import deepcopy
-from replay_memory import ReplayMemory
-from gymnasium import Env
 import random
-from conv_dqn import ConvolutionalDQN
 import numpy as np
 import torch
 import pickle
+from copy import deepcopy
+from replay_memory import ReplayMemory
+from conv_dqn import ConvolutionalDQN
+from linear_dqn import LinearDQN
 from typing_extensions import Self
 
 class DQNAgent:
+    
+    #LinearDQN vals
+    #ALPHA = 0.001
+    #GAMMA = 0.9
 
-    ALPHA = 0.01
-    GAMMA = 0.9999
+    #ConvDQN vals
+    ALPHA = 0.001
+    GAMMA = 0.9
     MEMORY_SIZE = 50_000
-    T = 100
+    T = 50
 
-    EXPLORE_PROB = 0.9
-    EXPLORE_PROB_END = 0.05
-    EXPLORE_PROB_DECAY = 200
-    EPS_START = 0.9
-    EPS_END = 0.05  # Petition to rename to this? Sice we use epsilon in get_action()
-    EPS_DECAY = 200
+    EPSILON_START = 0.9
+    EPSILON_END = 0.05
+    EPSILON_DECAY = 125 # 200 a wee bit extreme, needs tweaking
     
     CHANNELS = 3
 
@@ -29,8 +31,8 @@ class DQNAgent:
         self.total_steps = 0
         self.grid_size = grid_size
 
-        self.policy_net = ConvolutionalDQN(self.grid_size)
-        self.target_net = ConvolutionalDQN(self.grid_size)
+        self.policy_net = LinearDQN(self.grid_size)
+        self.target_net = LinearDQN(self.grid_size)
 
         self.replay_memory = ReplayMemory(self.MEMORY_SIZE)
         self.state = None
@@ -51,9 +53,9 @@ class DQNAgent:
         return random.randint(0, 2)
 
     def get_action(self) -> int:
-        epsilon = self.EXPLORE_PROB_END \
-                    + (self.EXPLORE_PROB - self.EXPLORE_PROB_END) \
-                    * np.exp(-1 * self.total_steps / self.EXPLORE_PROB_DECAY)
+        epsilon = self.EPSILON_END \
+                    + (self.EPSILON_START - self.EPSILON_END) \
+                    * np.exp(-1 * self.total_steps / self.EPSILON_DECAY)
 
         self.total_steps += 1
 
@@ -114,7 +116,7 @@ class DQNAgent:
 
     def __tensorize_state(self, state) -> torch.Tensor:
         t = torch.tensor(state["grid"], dtype=torch.uint8)
-        s = torch.zeros((3, self.grid_size, self.grid_size))
+        s = torch.zeros((self.CHANNELS, self.grid_size, self.grid_size))
         for i in range(0, self.CHANNELS):
             s[i] = torch.where(t == i + 1, t // (i + 1), 0)
         return s

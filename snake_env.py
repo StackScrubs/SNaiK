@@ -3,7 +3,6 @@ import gymnasium as gym
 from gymnasium import spaces
 from snake_state import SnakeState, GridCellType
 from collections.abc import Mapping
-import datetime
 import numpy as np
 
 class LazyDict(Mapping):
@@ -22,7 +21,6 @@ class LazyDict(Mapping):
             
     def __len__(self):
         return len(self.__dict)
-import numpy as np
 
 class SnakeEnv(gym.Env):
     metadata = {
