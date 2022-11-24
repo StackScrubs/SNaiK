@@ -30,7 +30,7 @@ def entry(ctx, alpha, gamma, size, render, seed):
     ctx.obj = CLIContext(agent_ctx, environment_ctx)
 
 @entry.command()
-@click.option("-d", "--discretizer", type=click.Choice(DISCRETIZER_TYPE), required=False, cls=OneOf, other="file")
+@click.option("-d", "--discretizer", "discretizer_name", type=click.Choice(DISCRETIZER_TYPE), required=False, cls=OneOf, other="file")
 @click.option("-f", "--file", type=str, required=False, cls=OneOf, other="discretizer")
 @click.option("-ns", "--n-sectors", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPE.ANGULAR.value)
 @click.option("-qs", "--quad-size", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPE.QUAD.value)
