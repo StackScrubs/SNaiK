@@ -138,7 +138,6 @@ class AgentRunner:
         self.env = ctx.env
 
     async def run(self):
-        from json import dumps
         observation = self.env.reset()
         reward = 0
         self.agent.initialize()
