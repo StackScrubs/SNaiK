@@ -1,6 +1,5 @@
 from matplotlib import pyplot as plt
 from matplotlib.offsetbox import AnchoredText
-import numpy as np
 from math import floor
 
 class Grapher:
@@ -12,9 +11,12 @@ class Grapher:
         
     def update(self, episode, score):
         self.episodes.append(episode), 
-        self.scores.append(score), 
+        self.scores.append(score),
+        
+        
     
-    def _list_to_avg_chunks(self, list, chunk_size):
+    def _reduce_to_avg(self, list: list, chunk_size: int):
+        """Divides a long list of values into chunks and finds the average value of each chunk."""
         chunks = [list[i:i + chunk_size] for i in range(0, len(list), chunk_size)]
         return [sum(chunks[i]) / len(chunks[i]) for i in range(len(chunks))]
     
@@ -29,8 +31,8 @@ class Grapher:
     
     def avg_score_graph(self, base_path, file_name, card_info) -> str:
         chunk_size = floor(len(self.episodes) / self.NUMBER_OF_CHUNKS)
-        episode_plots = self._list_to_avg_chunks(self.episodes, chunk_size)
-        score_plots = self._list_to_avg_chunks(self.scores, chunk_size)
+        episode_plots = self._reduce_to_avg(self.episodes, chunk_size)
+        score_plots = self._reduce_to_avg(self.scores, chunk_size)
         
         _, ax = plt.subplots()
         at = AnchoredText(

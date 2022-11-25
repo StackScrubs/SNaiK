@@ -2,14 +2,15 @@ from __future__ import annotations
 from typing_extensions import Self
 from graphing import Grapher
 from agent import Agent, QLearningAgent, RenderingAgentDecorator, RandomAgent
-import click
 from utils.context import Context
 from utils.option_handlers import RequiredByWhenSetTo, OneOf
-import asyncio
 from pickle import dumps, loads
 from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
+
+import click
+import asyncio
 
 VERSION = "1.0"
 

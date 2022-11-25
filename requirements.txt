@@ -5,3 +5,4 @@ pygame
 typing_extensions
 click
 aioconsole
+matplotlib
