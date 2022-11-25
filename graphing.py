@@ -34,11 +34,15 @@ class Grapher:
         
         _, ax = plt.subplots()
         at = AnchoredText(
-            self._bullet_list("- ", card_info), prop=dict(size=10), frameon=True, loc='upper left'
+            "Parameters:\n" + self._bullet_list("- ", card_info), 
+            prop=dict(size=10), 
+            frameon=True, 
+            loc='upper left'
         )
         ax.add_artist(at)
         
         plt.plot(episode_plots, score_plots)
+        plt.title("Score over episodes")
         plt.xlabel("Episode")
         plt.ylabel("Score")
         file_name = f"{base_path}/score_graph_{file_name}.png"

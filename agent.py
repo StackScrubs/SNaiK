@@ -54,7 +54,6 @@ class RenderingAgentDecorator(Agent):
         self.agent = agent
         self.__render_env = render_env
         self.__observation = agent.observation
-        print(self)
             
     def __try_render_once(self):
         if not self.__render_env.can_render:
@@ -75,7 +74,6 @@ class RenderingAgentDecorator(Agent):
         
     def update(self):
         self.__try_render_once()
-        #print(self.agent.update())
         return self.agent.update()
     
     def _env_update(self, action: int):
