@@ -125,6 +125,7 @@ class RandomAgent(Agent):
     def run_episode(self):
         return super().run_episode()
 
+
 class QLearningAgent(Agent):
     TYPE = AgentType.QLEARNING
     

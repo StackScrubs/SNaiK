@@ -117,7 +117,7 @@ class AgentWithContext:
                 print(f"Saved model state as \"{file}\".")
             elif cmd == "graph":
                 print("Creating performance graph of current learning...")
-                file = self.grapher.avg_score_graph(".", time(), "")
+                file = self.grapher.avg_score_graph(".", time(), self.info)
                 print(f"Graph created and saved as \"{file}\".")
             elif cmd == "info":
                 print(self.info)
@@ -127,8 +127,8 @@ class AgentWithContext:
     @property
     def info(self) -> dict:
         return {
+            **self.ctx.info,
             **self.agent.info,
-            **self.ctx.info
         }
 
 class AgentRunner:    

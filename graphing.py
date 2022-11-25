@@ -18,11 +18,13 @@ class Grapher:
         chunks = [list[i:i + chunk_size] for i in range(0, len(list), chunk_size)]
         return [sum(chunks[i]) / len(chunks[i]) for i in range(len(chunks))]
     
-    def _bullet_list(self, points):
-        res = f"- {points[0]}"
-        for i in points[1:]:
-            res += f"\n- {i}"
-        
+    def _bullet_list(self, prefix:str, t: dict):
+        res = ""
+        for i in t.keys():
+            if isinstance(t[i], dict):
+                res += f"{prefix}{i}:\n" + self._bullet_list("  " + prefix, t[i])
+            else:
+                res += f"{prefix}{i}: {t[i]}\n"
         return res
     
     def avg_score_graph(self, base_path, file_name, card_info) -> str:
@@ -30,12 +32,10 @@ class Grapher:
         episode_plots = self._list_to_avg_chunks(self.episodes, chunk_size)
         score_plots = self._list_to_avg_chunks(self.scores, chunk_size)
         
-        
         _, ax = plt.subplots()
         at = AnchoredText(
-            self._bullet_list(card_info.split(", ")), prop=dict(size=10), frameon=True, loc='upper left'
+            self._bullet_list("- ", card_info), prop=dict(size=10), frameon=True, loc='upper left'
         )
-        #at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
         ax.add_artist(at)
         
         plt.plot(episode_plots, score_plots)
