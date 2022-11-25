@@ -18,16 +18,16 @@ class ReplayMemory:
     
     def sample_batched(self, batch_size):
         s = sample(self.__list[:self.__len], batch_size)
-        states = torch.zeros(batch_size, *(s[0].state.shape))
-        new_states = torch.zeros(batch_size, *(s[0].state.shape))
+        states = torch.zeros(batch_size, *(first.state.shape))
+        new_states = torch.zeros(batch_size, *(first.state.shape))
         actions = torch.zeros(batch_size, dtype=torch.long)
         rewards = torch.zeros(batch_size)
         
-        for i, transition in enumerate(s):
-            states[i] = transition.state
-            new_states[i] = transition.new_state
-            actions[i] = transition.action
-            rewards[i] = transition.reward
+        for (state, new_state, action, reward, transition) in zip(states, new_states, actions, rewards, s):
+            state.copy_(transition.state)
+            new_state.copy_(transition.new_state)
+            action.copy_(transition.action)
+            reward.copy_(transition.reward)
             
         return states, new_states, actions, rewards
 
