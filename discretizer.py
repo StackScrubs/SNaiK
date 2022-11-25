@@ -1,7 +1,13 @@
 from vec import Vec2
 from math import ceil, pi
 import numpy as np
+from enum import Enum
 from snake_state import Direction
+
+class DiscretizerType(str, Enum):
+    FULL = "full"
+    QUAD = "quad"
+    ANGULAR = "angular"
 
 class Discretizer:
     def __init__(self, grid_size: int):
@@ -9,11 +15,17 @@ class Discretizer:
     
     def _discretize_vec(self, vec: Vec2):
         return vec.x*self.grid_size + vec.y
+                
+    @property
+    def info(self) -> dict:
+        return {"type": self.TYPE}
 
 """
 Discretizes the entire grid into a discrete state. This contains the full state of the grid.
 """ 
 class FullDiscretizer(Discretizer):
+    TYPE = DiscretizerType.FULL
+    
     def __init__(self, grid_size: int):
         Discretizer.__init__(self, grid_size)
     
@@ -47,6 +59,8 @@ QuadDiscretizer discretizes state into a certain amount of quadrants, where the 
 quadrant the apple and tail is located in, which way the snake is headed, as well as the exact location of the head.  
 """
 class QuadDiscretizer(Discretizer):
+    TYPE = DiscretizerType.QUAD
+    
     def __init__(self, grid_size: int, quad_size: int):
         Discretizer.__init__(self, grid_size)
         self.quad_size = quad_size
@@ -82,11 +96,20 @@ class QuadDiscretizer(Discretizer):
             qdvec(observation["tail"]) * 4 +
             observation["direction"].id
         )
+                    
+    @property
+    def info(self) -> dict:
+        return {
+            **super().info,
+            "quad_size": self.quad_size
+        }
 
 """
 AngularDiscretizer discretizes state as relative angle, encoded into circle sectors, and position of objects as related to snake's head.
 """
 class AngularDiscretizer(Discretizer):
+    TYPE = DiscretizerType.ANGULAR
+    
     def __init__(self, grid_size: int, n_sectors: int):
         Discretizer.__init__(self, grid_size)
         self.n_sectors = n_sectors
@@ -162,3 +185,10 @@ class AngularDiscretizer(Discretizer):
             tail_obs         * self.n_dirs +
             observation["direction"].id
         )
+                    
+    @property
+    def info(self) -> dict:
+        return {
+            **super().info,
+            "n_sectors": self.n_sectors,
+        }

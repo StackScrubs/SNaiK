@@ -174,7 +174,7 @@ class SnakeState:
         
     @property
     def collidables(self) -> list[Vec2]:
-        return (b.position for b in islice(self.__snake, 4, None))
+        return list(b.position for b in islice(self.__snake, 4, None))
 
     @property
     def direction(self) -> Direction:
