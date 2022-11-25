@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing_extensions import Self
 from snake_env import SnakeEnv
-from agent import Agent, QLearningAgent, RenderingAgentDecorator, RandomAgent
+from agent import Agent, QLearningAgent, DQNAgent, RenderingAgentDecorator, RandomAgent
 import click
 from utils.context import Context
 from utils.option_handlers import RequiredByWhenSetTo, OneOf
@@ -10,6 +10,7 @@ from pickle import dumps, loads
 from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
+from dqn import ModelType, LinearDQN, ConvolutionalDQN
 
 VERSION = "1.0"
 
@@ -64,19 +65,15 @@ def random(ctx: Context):
     asyncio.run(AgentWithContext(ctx, agent).run())
 
 @new.command()
+@click.argument("model", type=click.Choice(ModelType), required=True)
 @click.pass_obj
-def dqn(ctx, file):
-    print("TYPE=DQN")
-    agent = None
-    
-    if file:
-        #agent = DQNAgent.from_file(file)
-        pass
-    else:
-        #agent = DQNAgent(ctx.agent_context)
-        pass
-
-    #main(agent, ctx.env_ctx)
+def dqn(ctx: Context, model: str | None):
+    nn_model = ({
+        ModelType.LINEAR: lambda: LinearDQN(ctx.size),
+        ModelType.CONVOLUTIONAL: lambda: ConvolutionalDQN(ctx.size)
+    })[model]()
+    agent = DQNAgent(ctx.agent_context, nn_model)
+    asyncio.run(AgentWithContext(ctx, agent).run())
 
 @dataclass(frozen=True)
 class AgentWithContext:

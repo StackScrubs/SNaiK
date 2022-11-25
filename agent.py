@@ -6,9 +6,12 @@ from qtable import QTable
 from discretizer import Discretizer
 from transition import Transition
 from enum import Enum
-from pickle import dumps, loads
 from utils.context import AgentContext
 import numpy as np
+import torch
+from copy import deepcopy
+from replay_memory import ReplayMemory
+from dqn import DQN
 
 class AgentType(str, Enum):
     RANDOM = "random"
@@ -131,3 +134,110 @@ class QLearningAgent(Agent):
             **super().info,
             "discretizer": self.__discretizer.info,
         }
+
+class DQNAgent(Agent):
+    def __init__(self, ctx: AgentContext, nn: DQN):
+        super().__init__(ctx)
+        self.total_steps = 0
+        self.grid_size = ctx.size
+        self.alpha = ctx.alpha
+        self.gamma = ctx.gamma
+
+        self.channels = 3
+        self.memory_size = 100_000
+        self.batch_size = 512
+        self.T = 1100
+        self.epsilon_start = 0.9
+        self.epsilon_end = 0.05
+        self.epsilon_decay = 125 # 200 a wee bit extreme, needs tweaking
+
+        self.policy_net = nn
+        self.target_net = deepcopy(nn)
+
+        self.replay_memory = ReplayMemory(self.memory_size)
+        self.tensorized_obs = self.__tensorize_observation(ctx.env.reset())
+
+        self.policy_net.train(True)
+        self.target_net.train(False)
+        
+        self.policy_net.init_layers()
+        self.__copy_q_to_target()
+
+        self.optimizer = torch.optim.AdamW(self.policy_net.parameters(), lr=self.alpha)
+
+    def get_optimal_action(self, observation) -> int:
+        observation = self.__tensorize_observation(observation)
+        with torch.no_grad():
+            action_q_vals = self.policy_net(observation.view(1, self.channels, self.grid_size, self.grid_size)) 
+        return torch.argmax(action_q_vals).item()
+
+    def initialize(self):
+        self.__experience_initial()
+
+    def update(self):
+        states, new_states, actions, rewards = self.replay_memory.sample_batched(self.batch_size)
+        
+        # Reshape the states so they fit in the DQN model
+        states = states.view(self.batch_size, self.channels, self.grid_size, self.grid_size)
+        new_states = new_states.view(self.batch_size, self.channels, self.grid_size, self.grid_size)
+        
+        q_arrays = None
+        with torch.no_grad():
+            q_arrays = self.target_net(new_states)
+        q_max, _ = torch.max(q_arrays, axis=1, keepdim=True)
+        q_values = torch.multiply(q_max, self.gamma) + rewards.view(-1, 1)
+
+        self.optimizer.zero_grad()
+        self.policy_net.loss(states, actions, q_values).backward()
+
+        for param in self.policy_net.parameters():
+            param.grad.data.clamp(-1, 1)
+        self.optimizer.step()
+
+        if self.total_steps % self.T == 0:
+            self.__copy_q_to_target()
+
+    def __memorize(self, state: torch.Tensor, new_state: torch.Tensor, action: int, reward: int): 
+        self.replay_memory.push(state, new_state, action, reward)
+
+    def __get_random_action(self):
+        return randint(0, 2)
+
+    def __get_action(self) -> int:
+        epsilon = self.epsilon_end \
+                    + (self.epsilon_start - self.epsilon_end) \
+                    * np.exp(-1 * self.total_steps / self.epsilon_decay)
+
+        self.total_steps += 1
+
+        if np.random.random() < epsilon:
+            return self.__get_random_action()
+        else:
+            action_q_vals = None
+            with torch.no_grad():
+                action_q_vals = self.policy_net(self.observation.view(1, self.channels, self.grid_size, self.grid_size))
+            return torch.argmax(action_q_vals).item()
+
+    def __experience_replay(self, explore_only=False):
+        action = self.__get_action() if not explore_only else self.__get_random_action()
+
+        self._env_update(action)
+
+        new_observation = self.__tensorize_observation(self.observation)
+        self.__memorize(self.tensorized_obs, new_observation, action, self.reward)
+        self.tensorized_obs = new_observation
+
+    def __experience_initial(self):
+        for _ in range(20_000):
+            self.__experience_replay(explore_only=True)
+        self.tensorized_obs = self.__tensorize_observation(self.env.reset())
+
+    def __copy_q_to_target(self):
+        self.target_net.load_state_dict(deepcopy(self.policy_net.state_dict()))
+
+    def __tensorize_observation(self, observation) -> torch.Tensor:
+        t = torch.tensor(observation["grid"], dtype=torch.uint8)
+        s = torch.zeros((self.channels, self.grid_size, self.grid_size))
+        for i in range(0, self.channels):
+            s[i] = torch.where(t == i + 1, t // (i + 1), 0)
+        return s
