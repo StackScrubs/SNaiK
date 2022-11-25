@@ -28,9 +28,10 @@ def entry():
 @click.argument("file", type=str, required=True)
 @click.option("-e", "--episodes", type=int, required=False, default=-1)
 @click.option("-r", "--render", required=False, is_flag=True)
-def load(file: str, render: bool):
+def load(file: str, episodes: int, render: bool):
     ac: AgentWithContext = AgentWithContext.from_file(file)
     ac.ctx.render = render
+    ac.ctx.episodes = episodes
     
     show_welcome(ac.ctx)
     asyncio.run(ac.run())
