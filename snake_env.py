@@ -195,9 +195,3 @@ class SnakeEnv(gym.Env):
 
             pygame.display.quit()
             pygame.quit()
-            
-    # def __getstate__(self):
-    #     return (self.render_mode, self.seed, self.size, )
-    
-    # def __setstate__(self, state):
-    #     self.__init__(state[0], state[1], state[2])
