@@ -1,59 +1,69 @@
-from snake_env import SnakeEnv
-from qtable import SnakeQLearningAgent
+from __future__ import annotations
+from typing_extensions import Self
 from graphing import Grapher
+from agent import Agent, QLearningAgent, RenderingAgentDecorator, RandomAgent
 import click
-from utils.ctx import CLIContext, AgentContext, EnvironmentContext
+from utils.context import Context
 from utils.option_handlers import RequiredByWhenSetTo, OneOf
 import asyncio
-import sys
+from pickle import dumps, loads
 from aioconsole import ainput, aprint
-from discretizer import DISCRETIZER_TYPE, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
+from dataclasses import dataclass
+from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
+
+VERSION = "1.0"
+
+def show_welcome(ctx: Context):
+    print(f"SNaiK {VERSION}")
+    human_seed = ctx.seed if ctx.seed is not None else "random"
+    print(f"Parameters: {ctx.size}x{ctx.size}, α={ctx.alpha}, γ={ctx.gamma}, seed={human_seed}")
 
 @click.group()
+def entry():
+    pass
+
+@entry.command()
+@click.argument("file", type=str, required=True)
+@click.option("-r", "--render", required=False, is_flag=True)
+def load(file: str, render: bool):
+    ac: AgentWithContext = AgentWithContext.from_file(file)
+    ac.ctx.render = render
+    
+    show_welcome(ac.ctx)
+    asyncio.run(ac.run())
+
+@entry.group()
 @click.option("-a", "--alpha", type=click.FloatRange(0, 1, min_open=True, max_open=True), required=False, default=0.1)
 @click.option("-g", "--gamma", type=click.FloatRange(0, 1, min_open=True, max_open=True), required=False, default=0.9)
 @click.option("-sz","--size", type=int, required=False, default=4)
 @click.option("-r", "--render", required=False, is_flag=True)
 @click.option("-s", "--seed", type=int, required=False, default=None)
 @click.pass_context
-def entry(ctx, alpha, gamma, size, render, seed):
-    print("SNaiK 1.0")
-    print(f"Running with parameters:")
-    print(f"ALPHA={alpha}")
-    print(f"GAMMA={gamma}")
-    print(f"SIZE={size}")
-    print(f"RENDER={render}")
-    print(f"SEED={seed}")
+def new(ctx, alpha, gamma, size, render, seed):
+    ctx.obj = Context(alpha=alpha, gamma=gamma, size=size, render=render, seed=seed)
+    show_welcome(ctx.obj)
     
-    agent_ctx = AgentContext(alpha, gamma, size)
-    environment_ctx = EnvironmentContext(size, render, seed)
-    
-    ctx.obj = CLIContext(agent_ctx, environment_ctx)
-
-@entry.command()
-@click.option("-d", "--discretizer", type=click.Choice(DISCRETIZER_TYPE), required=False, cls=OneOf, other="file")
-@click.option("-f", "--file", type=str, required=False, cls=OneOf, other="discretizer")
-@click.option("-ns", "--n-sectors", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPE.ANGULAR.value)
-@click.option("-qs", "--quad-size", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DISCRETIZER_TYPE.QUAD.value)
+@new.command()
+@click.argument("discretizer", type=click.Choice(DiscretizerType), required=True)
+@click.option("-ns", "--n-sectors", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DiscretizerType.ANGULAR.value)
+@click.option("-qs", "--quad-size", type=int, required=False, cls=RequiredByWhenSetTo, required_by="discretizer", set_to=DiscretizerType.QUAD.value)
 @click.pass_obj
-def qlearning(ctx, discretizer, file, n_sectors, quad_size):
-    agent = None
-    
-    if file:
-        agent = SnakeQLearningAgent.from_file(file)
-    
-    elif discretizer:
-        disc = ({
-            DISCRETIZER_TYPE.FULL: lambda: FullDiscretizer(ctx.agent_ctx.size),
-            DISCRETIZER_TYPE.ANGULAR: lambda: AngularDiscretizer(ctx.agent_ctx.size, n_sectors),
-            DISCRETIZER_TYPE.QUAD: lambda: QuadDiscretizer(ctx.agent_ctx.size, quad_size)
-        })[discretizer]()
-        agent = SnakeQLearningAgent(disc)
+def qlearning(ctx: Context, discretizer: str | None, n_sectors: int, quad_size: int):
+    disc = ({
+        DiscretizerType.FULL: lambda: FullDiscretizer(ctx.size),
+        DiscretizerType.ANGULAR: lambda: AngularDiscretizer(ctx.size, n_sectors),
+        DiscretizerType.QUAD: lambda: QuadDiscretizer(ctx.size, quad_size)
+    })[discretizer]()
+    agent = QLearningAgent(ctx.agent_context, disc)
+    asyncio.run(AgentWithContext(ctx, agent).run())
 
-    asyncio.run(main(agent, ctx.env_ctx))
+@new.command()
+@click.pass_obj
+def random(ctx: Context):
+    agent = RandomAgent(ctx.agent_context)
+    asyncio.run(AgentWithContext(ctx, agent).run())
 
-@entry.command()
-@click.option("-f", "--file", type=str, required=False)
+@new.command()
 @click.pass_obj
 def dqn(ctx, file):
     print("TYPE=DQN")
@@ -63,79 +73,79 @@ def dqn(ctx, file):
         #agent = DQNAgent.from_file(file)
         pass
     else:
-        #agent = DQNAgent(ctx.agent_ctx)
+        #agent = DQNAgent(ctx.agent_context)
         pass
 
     #main(agent, ctx.env_ctx)
 
-class AgentRunner:
-    def __init__(self, agent, env_ctx):
+@dataclass(frozen=True)
+class AgentWithContext:
+    ctx: Context
+    agent: Agent
+    grapher = Grapher()
+    
+    @staticmethod
+    def from_file(file_path) -> Self:
+        with open(file_path, "rb") as f:
+            return loads(f.read())
+        
+    def to_file(self, file_name) -> str:
+        base_path = "."
+        file_name = f"{base_path}/{file_name}.qbf"
+        with open(file_name, "wb") as f:
+            f.write(dumps(self))
+
+        return file_name
+    
+    async def run(self):    
+        pretty_agent = self.agent
+        if self.ctx.render:
+            pretty_agent = RenderingAgentDecorator(self.ctx.render_env, self.agent)
+        agent_runner = AgentRunner(pretty_agent, self.grapher, self.ctx)
+        await asyncio.gather(
+            self.__parse_cmd(),
+            agent_runner.run(),
+        )
+    
+    async def __parse_cmd(self):
+        from time import time
+        while True:
+            cmd = await ainput("Write 'save', 'graph' or 'info': ")
+            if cmd == "save":
+                print("Saving current model state...")
+                file = self.to_file(time())
+                print(f"Saved model state as \"{file}\".")
+            elif cmd == "graph":
+                print("Creating performance graph of current learning...")
+                file = self.grapher.avg_score_graph(".", time(), "")
+                print(f"Graph created and saved as \"{file}\".")
+            elif cmd == "info":
+                print(self.info)
+            else:
+                await aprint(f"Invalid command '{cmd}'.")
+    
+    @property
+    def info(self) -> dict:
+        return {
+            **self.agent.info,
+            **self.ctx.info
+        }
+
+class AgentRunner:    
+    def __init__(self, agent: Agent, grapher: Grapher, ctx: Context):
         self.agent = agent
-        self.grapher = Grapher()
-        self.render = env_ctx.render
-
-        self.learning_env = SnakeEnv(render_mode=None, size=env_ctx.size, seed=env_ctx.seed)
-        if self.render:
-            self.render_env = SnakeEnv(render_mode="human", size=env_ctx.size, seed=env_ctx.seed)
-            self.render_obs = self.render_env.reset()
-
-    def _try_render_once(self):
-        if not self.render:
-            return
-            
-        if self.render_env.can_render:
-            self.render_env.death_counter = self.learning_env.death_counter
-            action = self.agent.get_optimal_action(self.render_obs)
-            self.render_obs, _, terminated, truncated, _ = self.render_env.step(action)
-            
-            if terminated or truncated:
-                self.render_env.reset()
+        self.grapher = grapher
+        self.env = ctx.env
 
     async def run(self):
         episode, score = 0, 0
-        observation = self.learning_env.reset()
-        reward = 0
+        self.agent.initialize()
         while True:
             episode += 1
-            
-            while True:
-                if self.render:
-                    self._try_render_once()
-                
-                action = self.agent.update(observation, reward)
-                observation, reward, terminated, truncated, score = self.learning_env.step(action)
-                
-                if terminated or truncated:
-                    break
+            score = self.agent.run_episode()
             
             self.grapher.update(episode, score)
-            self.learning_env.reset()
-
             await asyncio.sleep(0)
-
-async def parse_cmd(agent_runner: AgentRunner):
-    while True:
-        cmd = await ainput("Write 'save' or 'graph': ")
-        from time import time
-        if cmd == "save":
-            print("Saving current model state...")
-            file = agent_runner.agent.to_file(time())
-            print(f"Saved model state as \"{file}\".")
-            
-        elif cmd == "graph":
-            print("Creating performance graph of current learning...")
-            file = agent_runner.grapher.avg_score_graph(".", time(), "Alpha: 0.1, Gamma: 0.99, Size: 4, ...")
-            print(f"Graph created and saved as \"{file}\".")
-            
-        else:
-            await aprint(f"Invalid command '{cmd}'.")
-    
-async def main(agent, env_ctx):    
-    agent_runner = AgentRunner(agent, env_ctx)
-    await asyncio.gather(
-        parse_cmd(agent_runner),
-        agent_runner.run(),
-    )
 
 if __name__ == "__main__":
     entry()
