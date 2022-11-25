@@ -1,7 +1,8 @@
 from __future__ import annotations
 from random import randint
+from typing import Any
 from typing_extensions import Self
-from snake_env import SnakeEnv
+from snake_env import LazyDict, SnakeEnv
 from qtable import QTable
 from discretizer import Discretizer
 from transition import Transition
@@ -28,15 +29,19 @@ class Agent:
         """Initialize the agent"""
         pass
         
-    def update(self):
+    def update(self) -> tuple[LazyDict, float | int, bool, bool, Any]:
         """Runs a single training step"""
         pass
     
-    def _env_update(self, action: int):
-        self.observation, self.reward, terminated, truncated, _ = self.env.step(action)
-        
-        if terminated or truncated:
-            self.observation = self.env.reset()
+    def _env_update(self, action: int) -> tuple[LazyDict, float | int, bool, bool, Any]:
+        return self.env.step(action)
+            
+    def run_episode(self):
+        while True:
+            self.observation, self.reward, terminated, truncated, info = self.update()
+            if terminated or truncated:
+                self.observation = self.env.reset()
+                return info
             
     @property
     def info(self) -> dict:
@@ -73,7 +78,27 @@ class RenderingAgentDecorator(Agent):
     
     def _env_update(self, action: int):
         return self.agent._env_update(action)
-                
+
+    @property
+    def env(self) -> SnakeEnv:
+        return self.agent.env
+    
+    @property
+    def observation(self) -> tuple[LazyDict, float | int, bool, bool, Any]:
+        return self.agent.observation
+    
+    @observation.setter
+    def observation(self, value: tuple[LazyDict, float | int, bool, bool, Any]):
+        self.agent.observation = value
+    
+    @property
+    def reward(self) -> float:
+        return self.agent.reward
+    
+    @reward.setter
+    def reward(self, value: float):
+        self.agent.reward = value
+    
     @property
     def info(self) -> dict:
         return self.agent.info
@@ -93,7 +118,11 @@ class RandomAgent(Agent):
     
     def update(self):
         action = self.__get_random_action()
-        self._env_update(action)
+        return self._env_update(action)
+    
+    def run_episode(self):
+        return super().run_episode()
+
 
 class QLearningAgent(Agent):
     TYPE = AgentType.QLEARNING
@@ -117,13 +146,16 @@ class QLearningAgent(Agent):
         self.__state = new_state
         self.__action = action
         self.__step += 1
-        self._env_update(action)
+        return self._env_update(action)
 
     def __get_action(self, new_state):
         if np.random.random() < QTable.get_epsilon(self.__step):
             return np.random.randint(self.__action_space_len - 1)
         else:
             return self.__q.policy(new_state)
+        
+    def run_episode(self):
+        return super().run_episode()
             
     @property
     def info(self) -> dict:

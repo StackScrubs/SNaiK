@@ -20,6 +20,7 @@ class Discretizer:
     def info(self) -> dict:
         return {"type": self.TYPE}
 
+
 """
 Discretizes the entire grid into a discrete state. This contains the full state of the grid.
 """ 
@@ -53,6 +54,7 @@ class FullDiscretizer(Discretizer):
                 continue
             v = v << 1 | cell
         return v
+
 
 """ 
 QuadDiscretizer discretizes state into a certain amount of quadrants, where the snake is aware of which 

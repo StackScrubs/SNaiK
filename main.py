@@ -1,15 +1,16 @@
 from __future__ import annotations
 from typing_extensions import Self
-from snake_env import SnakeEnv
+from graphing import Grapher
 from agent import Agent, QLearningAgent, RenderingAgentDecorator, RandomAgent
-import click
 from utils.context import Context
 from utils.option_handlers import RequiredByWhenSetTo, OneOf
-import asyncio
 from pickle import dumps, loads
 from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
+
+import click
+import asyncio
 
 VERSION = "1.0"
 
@@ -82,17 +83,16 @@ def dqn(ctx, file):
 class AgentWithContext:
     ctx: Context
     agent: Agent
+    grapher = Grapher()
     
     @staticmethod
     def from_file(file_path) -> Self:
         with open(file_path, "rb") as f:
             return loads(f.read())
         
-    def to_file(self) -> str:
-        from time import time
-        
+    def to_file(self, file_name) -> str:
         base_path = "."
-        file_name = f"{base_path}/{time()}.qbf"
+        file_name = f"{base_path}/{file_name}.qbf"
         with open(file_name, "wb") as f:
             f.write(dumps(self))
 
@@ -102,23 +102,23 @@ class AgentWithContext:
         pretty_agent = self.agent
         if self.ctx.render:
             pretty_agent = RenderingAgentDecorator(self.ctx.render_env, self.agent)
-        agent_runner = AgentRunner(pretty_agent, self.ctx)
+        agent_runner = AgentRunner(pretty_agent, self.grapher, self.ctx)
         await asyncio.gather(
             self.__parse_cmd(),
             agent_runner.run(),
         )
     
     async def __parse_cmd(self):
+        from time import time
         while True:
             cmd = await ainput("Write 'save', 'graph' or 'info': ")
             if cmd == "save":
                 print("Saving current model state...")
-                file = self.to_file()
+                file = self.to_file(time())
                 print(f"Saved model state as \"{file}\".")
             elif cmd == "graph":
                 print("Creating performance graph of current learning...")
-                # ...
-                file = None
+                file = self.grapher.avg_score_graph(".", time(), self.info)
                 print(f"Graph created and saved as \"{file}\".")
             elif cmd == "info":
                 print(self.info)
@@ -128,21 +128,24 @@ class AgentWithContext:
     @property
     def info(self) -> dict:
         return {
+            **self.ctx.info,
             **self.agent.info,
-            **self.ctx.info
         }
 
 class AgentRunner:    
-    def __init__(self, agent, ctx):
+    def __init__(self, agent: Agent, grapher: Grapher, ctx: Context):
         self.agent = agent
+        self.grapher = grapher
         self.env = ctx.env
 
     async def run(self):
-        observation = self.env.reset()
-        reward = 0
+        episode, score = 0, 0
         self.agent.initialize()
         while True:
-            self.agent.update()
+            episode += 1
+            score = self.agent.run_episode()
+            
+            self.grapher.update(episode, score)
             await asyncio.sleep(0)
 
 if __name__ == "__main__":
