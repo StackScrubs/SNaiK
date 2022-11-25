@@ -68,10 +68,9 @@ class SnakeQLearningAgent:
         else:
             return self.q.policy(new_state)
     
-    def to_file(self, base_path = ".") -> str:
-        from time import time
+    def to_file(self, file_name, base_path = ".") -> str:
         pickle_dump = dumps(self)
-        file_name = f"{base_path}/q_model_{time()}.qbf"
+        file_name = f"{base_path}/q_model_{file_name}.qbf"
         with open(file_name, "wb") as f:
             f.write(pickle_dump)
 
@@ -82,7 +81,3 @@ class SnakeQLearningAgent:
         with open(file_path, "rb") as f:
             agent = loads(f.read())
             return agent
-        
-    def __str__(self) -> str:
-        return str(self.q) + f"_SZ={self.discretizer.grid_size}_QLEARNING" + str(self.discretizer)
-        

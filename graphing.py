@@ -1,11 +1,12 @@
 from matplotlib import pyplot as plt
+from matplotlib.offsetbox import AnchoredText
 import numpy as np
 from math import floor
 
 class Grapher:
     def __init__(self) -> None:
         self.NUMBER_OF_CHUNKS = 10
-        
+            
         self.episodes = []
         self.scores = []
         
@@ -17,10 +18,25 @@ class Grapher:
         chunks = [list[i:i + chunk_size] for i in range(0, len(list), chunk_size)]
         return [sum(chunks[i]) / len(chunks[i]) for i in range(len(chunks))]
     
-    def avg_score_graph(self, base_path, file_name) -> str:
+    def _bullet_list(self, points):
+        res = f"- {points[0]}"
+        for i in points[1:]:
+            res += f"\n- {i}"
+        
+        return res
+    
+    def avg_score_graph(self, base_path, file_name, card_info) -> str:
         chunk_size = floor(len(self.episodes) / self.NUMBER_OF_CHUNKS)
         episode_plots = self._list_to_avg_chunks(self.episodes, chunk_size)
         score_plots = self._list_to_avg_chunks(self.scores, chunk_size)
+        
+        
+        _, ax = plt.subplots()
+        at = AnchoredText(
+            self._bullet_list(card_info.split(", ")), prop=dict(size=10), frameon=True, loc='upper left'
+        )
+        #at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
+        ax.add_artist(at)
         
         plt.plot(episode_plots, score_plots)
         plt.xlabel("Episode")
@@ -28,4 +44,5 @@ class Grapher:
         file_name = f"{base_path}/score_graph_{file_name}.png"
         plt.legend()
         plt.savefig(file_name)
+        
         return file_name

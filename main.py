@@ -113,18 +113,18 @@ class AgentRunner:
 
             await asyncio.sleep(0)
 
-async def parse_cmd(agent_runner):
+async def parse_cmd(agent_runner: AgentRunner):
     while True:
         cmd = await ainput("Write 'save' or 'graph': ")
+        from time import time
         if cmd == "save":
             print("Saving current model state...")
-            file = agent_runner.agent.to_file()
+            file = agent_runner.agent.to_file(time())
             print(f"Saved model state as \"{file}\".")
             
         elif cmd == "graph":
             print("Creating performance graph of current learning...")
-            file_name = str(agent_runner.agent)
-            file = agent_runner.grapher.avg_score_graph(".", file_name)
+            file = agent_runner.grapher.avg_score_graph(".", time(), "Alpha: 0.1, Gamma: 0.99, Size: 4, ...")
             print(f"Graph created and saved as \"{file}\".")
             
         else:

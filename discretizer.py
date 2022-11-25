@@ -15,9 +15,7 @@ class Discretizer:
     
     def _discretize_vec(self, vec: Vec2):
         return vec.x*self.grid_size + vec.y
-    
-    def __str__(self) -> str:
-        return "_"
+
 
 """
 Discretizes the entire grid into a discrete state. This contains the full state of the grid.
@@ -50,9 +48,7 @@ class FullDiscretizer(Discretizer):
                 continue
             v = v << 1 | cell
         return v
-    
-    def __str__(self) -> str:
-        return super().__str__() + f"FULL"
+
 
 """ 
 QuadDiscretizer discretizes state into a certain amount of quadrants, where the snake is aware of which 
@@ -95,9 +91,6 @@ class QuadDiscretizer(Discretizer):
             observation["direction"].id
         )
         
-    def __str__(self) -> str:
-        return super().__str__() + f"QUAD_qs={self.quad_size}"
-
 """
 AngularDiscretizer discretizes state as relative angle, encoded into circle sectors, and position of objects as related to snake's head.
 """
@@ -178,5 +171,3 @@ class AngularDiscretizer(Discretizer):
             observation["direction"].id
         )
         
-    def __str__(self) -> str:
-        return super().__str__() + f"ANGULAR_ns={self.n_sectors}"
