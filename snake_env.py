@@ -183,7 +183,6 @@ class SnakeEnv(gym.Env):
         self.screen.blit(img, (20, 20))
         pygame.display.update()
         pygame.event.pump()
-        self.clock.tick(self.metadata["render_fps"])
         self.last_render_ms = pygame.time.get_ticks()
 
     def _get_square_display(self, cell_type):

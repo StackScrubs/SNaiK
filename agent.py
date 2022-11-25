@@ -16,6 +16,7 @@ from dqn import DQN
 class AgentType(str, Enum):
     RANDOM = "random"
     QLEARNING = "qlearning"
+    DQN = "dqn"
 
 class Agent:
     def __init__(self, ctx: AgentContext):
@@ -136,6 +137,8 @@ class QLearningAgent(Agent):
         }
 
 class DQNAgent(Agent):
+    TYPE = AgentType.DQN
+    
     def __init__(self, ctx: AgentContext, nn: DQN):
         super().__init__(ctx)
         self.total_steps = 0
@@ -145,16 +148,16 @@ class DQNAgent(Agent):
 
         self.channels = 3
         self.memory_size = 100_000
-        self.batch_size = 512
+        self.batch_size = 256
         self.T = 1100
         self.epsilon_start = 0.9
-        self.epsilon_end = 0.05
-        self.epsilon_decay = 125 # 200 a wee bit extreme, needs tweaking
+        self.epsilon_end = 0.1
+        self.epsilon_decay = 500 # 200 a wee bit extreme, needs tweaking
 
         self.policy_net = nn
         self.target_net = deepcopy(nn)
 
-        self.replay_memory = ReplayMemory(self.memory_size)
+        self.replay_memory = ReplayMemory(self.memory_size, self.channels, self.grid_size)
         self.tensorized_obs = self.__tensorize_observation(ctx.env.reset())
 
         self.policy_net.train(True)
@@ -175,6 +178,8 @@ class DQNAgent(Agent):
         self.__experience_initial()
 
     def update(self):
+        self.__experience_replay()
+        
         states, new_states, actions, rewards = self.replay_memory.sample_batched(self.batch_size)
         
         # Reshape the states so they fit in the DQN model
@@ -215,7 +220,7 @@ class DQNAgent(Agent):
         else:
             action_q_vals = None
             with torch.no_grad():
-                action_q_vals = self.policy_net(self.observation.view(1, self.channels, self.grid_size, self.grid_size))
+                action_q_vals = self.policy_net(self.tensorized_obs.view(1, self.channels, self.grid_size, self.grid_size))
             return torch.argmax(action_q_vals).item()
 
     def __experience_replay(self, explore_only=False):
