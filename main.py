@@ -8,7 +8,6 @@ from pickle import dumps, loads
 from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
-from multiprocessing import Process
 
 import click
 import asyncio
@@ -148,7 +147,7 @@ class AgentRunner:
 
         episode, score = 0, 0
         self.agent.initialize()
-        while True and episode != self.ctx.episodes:
+        while episode != self.ctx.episodes:
             episode += 1
             score = self.agent.run_episode()
             
