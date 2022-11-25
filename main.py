@@ -8,6 +8,7 @@ from pickle import dumps, loads
 from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
+from multiprocessing import Process
 
 import click
 import asyncio
@@ -25,6 +26,7 @@ def entry():
 
 @entry.command()
 @click.argument("file", type=str, required=True)
+@click.option("-e", "--episodes", type=int, required=False, default=-1)
 @click.option("-r", "--render", required=False, is_flag=True)
 def load(file: str, render: bool):
     ac: AgentWithContext = AgentWithContext.from_file(file)
@@ -37,11 +39,12 @@ def load(file: str, render: bool):
 @click.option("-a", "--alpha", type=click.FloatRange(0, 1, min_open=True, max_open=True), required=False, default=0.1)
 @click.option("-g", "--gamma", type=click.FloatRange(0, 1, min_open=True, max_open=True), required=False, default=0.9)
 @click.option("-sz","--size", type=int, required=False, default=4)
+@click.option("-e", "--episodes", type=int, required=False, default=-1)
 @click.option("-r", "--render", required=False, is_flag=True)
 @click.option("-s", "--seed", type=int, required=False, default=None)
 @click.pass_context
-def new(ctx, alpha, gamma, size, render, seed):
-    ctx.obj = Context(alpha=alpha, gamma=gamma, size=size, render=render, seed=seed)
+def new(ctx, alpha, gamma, size, episodes, render, seed):
+    ctx.obj = Context(alpha=alpha, gamma=gamma, size=size, episodes=episodes, render=render, seed=seed)
     show_welcome(ctx.obj)
     
 @new.command()
@@ -98,7 +101,7 @@ class AgentWithContext:
 
         return file_name
     
-    async def run(self):    
+    async def run(self):
         pretty_agent = self.agent
         if self.ctx.render:
             pretty_agent = RenderingAgentDecorator(self.ctx.render_env, self.agent)
@@ -135,18 +138,30 @@ class AgentWithContext:
 class AgentRunner:    
     def __init__(self, agent: Agent, grapher: Grapher, ctx: Context):
         self.agent = agent
+        self.ctx = ctx
         self.grapher = grapher
         self.env = ctx.env
 
     async def run(self):
+        from time import time
+
         episode, score = 0, 0
         self.agent.initialize()
-        while True:
+        while True and episode != self.ctx.episodes:
             episode += 1
             score = self.agent.run_episode()
             
             self.grapher.update(episode, score)
             await asyncio.sleep(0)
+        
+        self.grapher.avg_score_graph(".", time(), self.info)
+        
+    @property
+    def info(self) -> dict:
+        return {
+            **self.ctx.info,
+            **self.agent.info,
+        }
 
 if __name__ == "__main__":
     entry()

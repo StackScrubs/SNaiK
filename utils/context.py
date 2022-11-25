@@ -9,6 +9,7 @@ class AgentContext:
     alpha: float
     gamma: float
     size: int
+    episodes: int
     seed: int | None
     
     @cached_property
@@ -16,9 +17,9 @@ class AgentContext:
         return SnakeEnv(render_mode=None, seed=self.seed, size=self.size)
 
 class Context:
-    def __init__(self, alpha: float, gamma: float, size: int, seed: int | None, render: bool):
+    def __init__(self, alpha: float, gamma: float, size: int, episodes: int, seed: int | None, render: bool):
         self.render = render
-        self.__agent_context = AgentContext(alpha=alpha, gamma=gamma, size=size, seed=seed)
+        self.__agent_context = AgentContext(alpha=alpha, gamma=gamma, size=size, episodes=episodes, seed=seed)
     
     @property
     def agent_context(self) -> AgentContext:
@@ -26,19 +27,23 @@ class Context:
     
     @property
     def alpha(self) -> float:
-        return self.__agent_context.alpha  
+        return self.__agent_context.alpha
     
     @property
     def gamma(self) -> float:
-        return self.__agent_context.gamma    
+        return self.__agent_context.gamma
     
     @property
-    def size(self) -> float:
-        return self.__agent_context.size    
+    def size(self) -> int:
+        return self.__agent_context.size
     
     @property
-    def seed(self) -> float:
-        return self.__agent_context.seed    
+    def episodes(self) -> int:
+        return self.__agent_context.episodes
+    
+    @property
+    def seed(self) -> int:
+        return self.__agent_context.seed
     
     @cached_property
     def env(self) -> SnakeEnv:
