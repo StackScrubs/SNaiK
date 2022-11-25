@@ -15,10 +15,10 @@ class DQNAgent:
     #GAMMA = 0.9
 
     #ConvDQN vals
-    ALPHA = 0.001
-    GAMMA = 0.9
-    MEMORY_SIZE = 50_000
-    T = 50
+    ALPHA = 0.00001
+    GAMMA = 0.999
+    MEMORY_SIZE = 100_000
+    T = 1100
 
     EPSILON_START = 0.9
     EPSILON_END = 0.05
@@ -27,12 +27,12 @@ class DQNAgent:
     CHANNELS = 3
 
     def __init__(self, grid_size):
-        self.batch_size = 32
+        self.batch_size = 512
         self.total_steps = 0
         self.grid_size = grid_size
 
-        self.policy_net = LinearDQN(self.grid_size)
-        self.target_net = LinearDQN(self.grid_size)
+        self.policy_net = ConvolutionalDQN(self.grid_size)
+        self.target_net = ConvolutionalDQN(self.grid_size)
 
         self.replay_memory = ReplayMemory(self.MEMORY_SIZE)
         self.state = None

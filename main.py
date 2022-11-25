@@ -4,7 +4,7 @@ from dqn_agent import DQNAgent
 from tqdm import tqdm
 
 SEED = 1337
-GRID_SIZE = 8
+GRID_SIZE = 5
 
 learning_env = SnakeEnv(render_mode=None, size=GRID_SIZE, seed=SEED)
 render_env = SnakeEnv(render_mode="human", size=GRID_SIZE, seed=SEED)
