@@ -138,9 +138,12 @@ class AgentRunner:
         observation = self.env.reset()
         reward = 0
         self.agent.initialize()
+        i = 0
         while True:
             self.agent.update()
-            await asyncio.sleep(0)
+            if i % 1000 == 0:
+                await asyncio.sleep(0)
+            i += 1
 
 if __name__ == "__main__":
     entry()
