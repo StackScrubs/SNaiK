@@ -1,8 +1,6 @@
 import numpy as np
-from pickle import dumps, loads
 from transition import Transition
 from typing_extensions import Self
-from discretizer import Discretizer
 
 class QTable:
     def __init__(self, alpha: float, gamma: float, action_space_sz: int, state_space_sz: int) -> Self:

@@ -3,6 +3,7 @@ tqdm
 gymnasium
 pygame
 typing_extensions
+torch
 click
 aioconsole
 matplotlib

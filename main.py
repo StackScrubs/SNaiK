@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing_extensions import Self
+from agent import Agent, QLearningAgent, DQNAgent, RenderingAgentDecorator, RandomAgent
 from graphing import Grapher
 from agent import Agent, QLearningAgent, RenderingAgentDecorator, RandomAgent
 from utils.context import Context, AgentContext
@@ -8,9 +9,10 @@ from pickle import dumps, loads
 from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
-import sys
+from dqn import ModelType, LinearDQN, ConvolutionalDQN
 from graphing import StatsType
 
+import sys
 import click
 import asyncio
 
@@ -70,19 +72,15 @@ def random(ctx: Context):
     asyncio.run(AgentWithContext(ctx, agent).run())
 
 @new.command()
+@click.argument("model", type=click.Choice(ModelType), required=True)
 @click.pass_obj
-def dqn(ctx, file):
-    print("TYPE=DQN")
-    agent = None
-    
-    if file:
-        #agent = DQNAgent.from_file(file)
-        pass
-    else:
-        #agent = DQNAgent(ctx.agent_context)
-        pass
-
-    #main(agent, ctx.env_ctx)
+def dqn(ctx: Context, model: str | None):
+    nn_model = ({
+        ModelType.LINEAR: lambda: LinearDQN(ctx.size),
+        ModelType.CONVOLUTIONAL: lambda: ConvolutionalDQN(ctx.size)
+    })[model]()
+    agent = DQNAgent(ctx.agent_context, nn_model)
+    asyncio.run(AgentWithContext(ctx, agent).run())
 
 @dataclass(frozen=True)
 class AgentWithContext:
@@ -118,7 +116,7 @@ class AgentWithContext:
         while True:
             cmd = await ainput("Write 'save', 'info' or 'exit': ")
             if cmd == "save":
-                self.__parse_save_cmd()
+                await self.__parse_save_cmd()
             elif cmd == "info":
                 print(self.info)
             elif cmd == "exit":
@@ -146,7 +144,7 @@ class AgentWithContext:
                 return
             elif graph_cmd in ["avg", "best"]:
                 print("Creating performance graph of current learning...")
-                file = self.grapher.get_score_graph(graph_cmd, self.info)
+                file = self.grapher.get_score_graph(graph_cmd, ".", self.info)
                 print(f"Graph created and saved as \"{file}\".")
             else:
                 await aprint(f"Invalid command '{graph_cmd}'.")
