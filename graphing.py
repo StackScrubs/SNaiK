@@ -9,6 +9,9 @@ class GraphType(str, Enum):
     AVG = "avg"
     BEST = "best"
 
+    def __str__(self):
+        return self.value
+
 class Grapher:
     def __init__(self) -> None:
         self.NUMBER_OF_CHUNKS = 10
@@ -68,23 +71,19 @@ class Grapher:
         
         return file_name
 
-    def avg_data(self):
-        chunk_size = floor(len(self.episodes) / self.NUMBER_OF_CHUNKS)
-        episode_plots = self._reduce_to_avg(self.episodes, chunk_size)
-        score_plots = self._reduce_to_avg(self.scores, chunk_size)
-        return episode_plots, score_plots        
-
-    def save_stats(self, stats_for: dict):
+    def save_stats(self, graph_type: GraphType, stats_for: dict):
         from json import dump
 
-        episodes, scores = self.avg_data()
+        chunk_size = floor(len(self.episodes) / self.NUMBER_OF_CHUNKS)
+
+        episodes, scores = self.__reduce(graph_type, chunk_size)
         data = {
             "label": ', '.join([str(x) for x in flatten_dict(stats_for).values()]),
             "episodes": episodes,
             "scores": scores
         }
 
-        file_name = f"{data['label'].replace(', ', '_')}_{time()}.json"
+        file_name = f"{data['label'].replace(', ', '_')}_{graph_type}_{time()}.json"
 
         with open(file_name, "w") as f:
             dump(data, f)
@@ -115,7 +114,6 @@ def __multi_graph():
             print("Only supply statistic files saved from main program.", file=sys.stderr)
             exit(-1)
             
-        
     plt.xlabel("Episode")
     plt.ylabel("Score")
     plt.legend()

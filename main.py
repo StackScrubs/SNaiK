@@ -8,7 +8,8 @@ from pickle import dumps, loads
 from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
-import sys, traceback
+import sys
+from graphing import GraphType
 
 import click
 import asyncio
@@ -119,25 +120,41 @@ class AgentWithContext:
             if cmd == "save":
                 save_cmd = await ainput("Write 'model', 'graph', 'stats', or 'abort' to go back: ")
                 if save_cmd == "stats":
-                    self.grapher.save_stats(self.agent.info)
+                    stats_cmd = await ainput("Write 'avg', 'best' or 'abort' to go back: ")
+                    if stats_cmd == "avg":
+                        print("Gathering stats from current learning...")
+                        file = self.grapher.save_stats(GraphType.AVG, self.agent.info)
+                        print(f"Stats saved as \"{file}\".")
+                    elif stats_cmd == "best":
+                        print("Gathering stats from current learning...")
+                        file = self.grapher.save_stats(GraphType.BEST, self.agent.info)
+                        print(f"Stats saved as \"{file}\".")
+                    elif stats_cmd == "abort":
+                        continue
+                    else:
+                        await aprint(f"Invalid command '{cmd}'.")
                 elif save_cmd == "graph":
                     graph_cmd = await ainput("Write 'avg', 'best' or 'abort' to go back: ")
                     if graph_cmd == "avg":
                         print("Creating performance graph of current learning...")
-                        file = self.grapher.get_score_graph("avg", ".", time(), self.info)
+                        file = self.grapher.get_score_graph(GraphType.AVG, ".", time(), self.info)
                         print(f"Graph created and saved as \"{file}\".")
                     elif graph_cmd == "best":
                         print("Creating performance graph of current learning...")
-                        file = self.grapher.get_score_graph("best", ".", time(), self.info)
+                        file = self.grapher.get_score_graph(GraphType.BEST, ".", time(), self.info)
                         print(f"Graph created and saved as \"{file}\".")
                     elif graph_cmd == "abort":
                         continue
+                    else:
+                        await aprint(f"Invalid command '{cmd}'.")
                 elif save_cmd == "model":
                     print("Saving current model state...")
                     file = self.to_file(time())
                     print(f"Saved model state as \"{file}\".")
                 elif save_cmd == "abort":
                     continue
+                else:
+                    await aprint(f"Invalid command '{cmd}'.")
             elif cmd == "info":
                 print(self.info)
             elif cmd == "exit":
