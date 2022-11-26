@@ -3,14 +3,18 @@ from typing_extensions import Self
 from snake_env import SnakeEnv
 from agent import Agent, QLearningAgent, DQNAgent, RenderingAgentDecorator, RandomAgent
 import click
+from graphing import Grapher
+from agent import Agent, QLearningAgent, RenderingAgentDecorator, RandomAgent
 from utils.context import Context
 from utils.option_handlers import RequiredByWhenSetTo, OneOf
-import asyncio
 from pickle import dumps, loads
 from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
 from dqn import ModelType, LinearDQN, ConvolutionalDQN
+
+import click
+import asyncio
 
 VERSION = "1.0"
 
@@ -25,10 +29,12 @@ def entry():
 
 @entry.command()
 @click.argument("file", type=str, required=True)
+@click.option("-e", "--episodes", type=int, required=False, default=-1)
 @click.option("-r", "--render", required=False, is_flag=True)
-def load(file: str, render: bool):
+def load(file: str, episodes: int, render: bool):
     ac: AgentWithContext = AgentWithContext.from_file(file)
     ac.ctx.render = render
+    ac.ctx.episodes = episodes
     
     show_welcome(ac.ctx)
     asyncio.run(ac.run())
@@ -37,11 +43,12 @@ def load(file: str, render: bool):
 @click.option("-a", "--alpha", type=click.FloatRange(0, 1, min_open=True, max_open=True), required=False, default=0.1)
 @click.option("-g", "--gamma", type=click.FloatRange(0, 1, min_open=True, max_open=True), required=False, default=0.9)
 @click.option("-sz","--size", type=int, required=False, default=4)
+@click.option("-e", "--episodes", type=int, required=False, default=-1)
 @click.option("-r", "--render", required=False, is_flag=True)
 @click.option("-s", "--seed", type=int, required=False, default=None)
 @click.pass_context
-def new(ctx, alpha, gamma, size, render, seed):
-    ctx.obj = Context(alpha=alpha, gamma=gamma, size=size, render=render, seed=seed)
+def new(ctx, alpha, gamma, size, episodes, render, seed):
+    ctx.obj = Context(alpha=alpha, gamma=gamma, size=size, episodes=episodes, render=render, seed=seed)
     show_welcome(ctx.obj)
     
 @new.command()
@@ -79,43 +86,42 @@ def dqn(ctx: Context, model: str | None):
 class AgentWithContext:
     ctx: Context
     agent: Agent
+    grapher = Grapher()
     
     @staticmethod
     def from_file(file_path) -> Self:
         with open(file_path, "rb") as f:
             return loads(f.read())
         
-    def to_file(self) -> str:
-        from time import time
-        
+    def to_file(self, file_name) -> str:
         base_path = "."
-        file_name = f"{base_path}/{time()}.qbf"
+        file_name = f"{base_path}/{file_name}.qbf"
         with open(file_name, "wb") as f:
             f.write(dumps(self))
 
         return file_name
     
-    async def run(self):    
+    async def run(self):
         pretty_agent = self.agent
         if self.ctx.render:
             pretty_agent = RenderingAgentDecorator(self.ctx.render_env, self.agent)
-        agent_runner = AgentRunner(pretty_agent, self.ctx)
+        agent_runner = AgentRunner(pretty_agent, self.grapher, self.ctx)
         await asyncio.gather(
             self.__parse_cmd(),
             agent_runner.run(),
         )
     
     async def __parse_cmd(self):
+        from time import time
         while True:
             cmd = await ainput("Write 'save', 'graph' or 'info': ")
             if cmd == "save":
                 print("Saving current model state...")
-                file = self.to_file()
+                file = self.to_file(time())
                 print(f"Saved model state as \"{file}\".")
             elif cmd == "graph":
                 print("Creating performance graph of current learning...")
-                # ...
-                file = None
+                file = self.grapher.avg_score_graph(".", time(), self.info)
                 print(f"Graph created and saved as \"{file}\".")
             elif cmd == "info":
                 print(self.info)
@@ -125,25 +131,37 @@ class AgentWithContext:
     @property
     def info(self) -> dict:
         return {
+            **self.ctx.info,
             **self.agent.info,
-            **self.ctx.info
         }
 
 class AgentRunner:    
-    def __init__(self, agent, ctx):
+    def __init__(self, agent: Agent, grapher: Grapher, ctx: Context):
         self.agent = agent
+        self.ctx = ctx
+        self.grapher = grapher
         self.env = ctx.env
 
     async def run(self):
-        observation = self.env.reset()
-        reward = 0
+        from time import time
+
+        episode, score = 0, 0
         self.agent.initialize()
-        i = 0
-        while True:
-            self.agent.update()
-            if i % 1000 == 0:
-                await asyncio.sleep(0)
-            i += 1
+        while episode != self.ctx.episodes:
+            episode += 1
+            score = self.agent.run_episode()
+            
+            self.grapher.update(episode, score)
+            await asyncio.sleep(0)
+        
+        self.grapher.avg_score_graph(".", time(), self.info)
+        
+    @property
+    def info(self) -> dict:
+        return {
+            **self.ctx.info,
+            **self.agent.info,
+        }
 
 if __name__ == "__main__":
     entry()

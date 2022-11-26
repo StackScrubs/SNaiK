@@ -28,8 +28,14 @@ class DQN(nn.Module):
             nn.init.kaiming_uniform_(layer.weight)
             #nn.init.uniform_(layer.weight)
             layer.bias.data.fill_(0.01)
+            
+    @property
+    def info(self) -> dict:
+        return {"type": self.TYPE}
 
 class LinearDQN(DQN):
+    TYPE = ModelType.LINEAR
+
     def __init__(self, grid_size):
         super(LinearDQN, self).__init__()
 
@@ -62,7 +68,10 @@ class ExtractTensor(nn.Module):
         return x[0]
 
 class ConvolutionalDQN(DQN):
+    TYPE = ModelType.CONVOLUTIONAL
+    
     def __init__(self, grid_size):
+        
         super(ConvolutionalDQN, self).__init__()
         
         self.logits = nn.Sequential(
@@ -74,6 +83,6 @@ class ConvolutionalDQN(DQN):
 
             nn.Flatten(),
             nn.ReLU(),
-            nn.Linear(7200, 3),
+            nn.Linear(1152, 3),
             nn.Softmax(1)
         )

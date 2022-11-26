@@ -1,17 +1,17 @@
 from __future__ import annotations
 from random import randint
-from typing_extensions import Self
-from snake_env import SnakeEnv
+from typing import Any
+from snake_env import LazyDict, SnakeEnv
 from qtable import QTable
 from discretizer import Discretizer
 from transition import Transition
 from enum import Enum
 from utils.context import AgentContext
-import numpy as np
-import torch
 from copy import deepcopy
 from replay_memory import ReplayMemory
 from dqn import DQN
+import torch
+import numpy as np
 
 class AgentType(str, Enum):
     RANDOM = "random"
@@ -32,15 +32,19 @@ class Agent:
         """Initialize the agent"""
         pass
         
-    def update(self):
+    def update(self) -> tuple[LazyDict, float | int, bool, bool, Any]:
         """Runs a single training step"""
         pass
     
-    def _env_update(self, action: int):
-        self.observation, self.reward, terminated, truncated, _ = self.env.step(action)
-        
-        if terminated or truncated:
-            self.observation = self.env.reset()
+    def _env_update(self, action: int) -> tuple[LazyDict, float | int, bool, bool, Any]:
+        return self.env.step(action)
+            
+    def run_episode(self):
+        while True:
+            self.observation, self.reward, terminated, truncated, info = self.update()
+            if terminated or truncated:
+                self.observation = self.env.reset()
+                return info
             
     @property
     def info(self) -> dict:
@@ -77,7 +81,27 @@ class RenderingAgentDecorator(Agent):
     
     def _env_update(self, action: int):
         return self.agent._env_update(action)
-                
+
+    @property
+    def env(self) -> SnakeEnv:
+        return self.agent.env
+    
+    @property
+    def observation(self) -> tuple[LazyDict, float | int, bool, bool, Any]:
+        return self.agent.observation
+    
+    @observation.setter
+    def observation(self, value: tuple[LazyDict, float | int, bool, bool, Any]):
+        self.agent.observation = value
+    
+    @property
+    def reward(self) -> float:
+        return self.agent.reward
+    
+    @reward.setter
+    def reward(self, value: float):
+        self.agent.reward = value
+    
     @property
     def info(self) -> dict:
         return self.agent.info
@@ -97,8 +121,9 @@ class RandomAgent(Agent):
     
     def update(self):
         action = self.__get_random_action()
-        self._env_update(action)
-
+        return self._env_update(action)
+    
+    
 class QLearningAgent(Agent):
     TYPE = AgentType.QLEARNING
     
@@ -121,14 +146,14 @@ class QLearningAgent(Agent):
         self.__state = new_state
         self.__action = action
         self.__step += 1
-        self._env_update(action)
+        return self._env_update(action)
 
     def __get_action(self, new_state):
         if np.random.random() < QTable.get_epsilon(self.__step):
             return np.random.randint(self.__action_space_len - 1)
         else:
             return self.__q.policy(new_state)
-            
+
     @property
     def info(self) -> dict:
         return {
@@ -136,11 +161,13 @@ class QLearningAgent(Agent):
             "discretizer": self.__discretizer.info,
         }
 
+
 class DQNAgent(Agent):
     TYPE = AgentType.DQN
     
     def __init__(self, ctx: AgentContext, nn: DQN):
         super().__init__(ctx)
+        self.nn = nn
         self.total_steps = 0
         self.grid_size = ctx.size
         self.alpha = ctx.alpha
@@ -154,8 +181,8 @@ class DQNAgent(Agent):
         self.epsilon_end = 0.1
         self.epsilon_decay = 500 # 200 a wee bit extreme, needs tweaking
 
-        self.policy_net = nn
-        self.target_net = deepcopy(nn)
+        self.policy_net = self.nn
+        self.target_net = deepcopy(self.nn)
 
         self.replay_memory = ReplayMemory(self.memory_size, self.channels, self.grid_size)
         self.tensorized_obs = self.__tensorize_observation(ctx.env.reset())
@@ -178,7 +205,7 @@ class DQNAgent(Agent):
         self.__experience_initial()
 
     def update(self):
-        self.__experience_replay()
+        observation, reward, terminated, truncated, info = self.__experience_replay()
         
         states, new_states, actions, rewards = self.replay_memory.sample_batched(self.batch_size)
         
@@ -201,6 +228,8 @@ class DQNAgent(Agent):
 
         if self.total_steps % self.T == 0:
             self.__copy_q_to_target()
+            
+        return observation, reward, terminated, truncated, info
 
     def __memorize(self, state: torch.Tensor, new_state: torch.Tensor, action: int, reward: int): 
         self.replay_memory.push(state, new_state, action, reward)
@@ -226,11 +255,13 @@ class DQNAgent(Agent):
     def __experience_replay(self, explore_only=False):
         action = self.__get_action() if not explore_only else self.__get_random_action()
 
-        self._env_update(action)
+        observation, reward, terminated, truncated, info = self._env_update(action)
 
-        new_observation = self.__tensorize_observation(self.observation)
-        self.__memorize(self.tensorized_obs, new_observation, action, self.reward)
+        new_observation = self.__tensorize_observation(observation)
+        self.__memorize(self.tensorized_obs, new_observation, action, reward)
         self.tensorized_obs = new_observation
+        
+        return observation, reward, terminated, truncated, info
 
     def __experience_initial(self):
         for _ in range(20_000):
@@ -246,3 +277,10 @@ class DQNAgent(Agent):
         for i in range(0, self.channels):
             s[i] = torch.where(t == i + 1, t // (i + 1), 0)
         return s
+
+    @property
+    def info(self) -> dict:
+        return {
+            **super().info,
+            "nn": self.nn.info,
+        }
