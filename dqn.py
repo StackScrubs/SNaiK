@@ -6,6 +6,9 @@ class ModelType(str, Enum):
     LINEAR = "linear"
     CONVOLUTIONAL = "convolutional"
 
+def get_next_odd(x: int):
+    return x+(x % 2 + 1)%2
+
 class DQN(nn.Module):
     def __init__(self):
         super(DQN, self).__init__()
@@ -61,23 +64,21 @@ class LinearDQN(DQN):
             nn.Softmax(1)
         )
 
-class ExtractTensor(nn.Module):
-    def forward(self, x):
-        return x[0]
-
 class ConvolutionalDQN(DQN):
     TYPE = ModelType.CONVOLUTIONAL
     
     def __init__(self, grid_size):
-        
         super(ConvolutionalDQN, self).__init__()
         
+        kernel_size = get_next_odd(grid_size//2)
+        out_channels = 3*24
+        
         self.logits = nn.Sequential(
-            nn.Conv2d(3, 3*24, kernel_size=(grid_size//2)+1, padding="same"),
-            nn.BatchNorm2d(3*24),
+            nn.Conv2d(3, out_channels, kernel_size=kernel_size, padding="same"),
+            nn.BatchNorm2d(out_channels),
 
             nn.Flatten(),
             nn.ReLU(),
-            nn.Linear(1800, 3),
+            nn.Linear(out_channels * grid_size**2, 3),
             nn.Softmax(1)
         )
