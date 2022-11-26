@@ -24,8 +24,8 @@ class Grapher:
 
     def _get_chunk_size(self):
         return floor(len(self.episodes) / self.NUMBER_OF_CHUNKS)
-
     
+    #TODO: make moving average
     def _reduce_to_avg(self, list: list, chunk_size: int):
         """Divides a long list of values into chunks and finds the average value of each chunk."""
         chunks = [list[i:i + chunk_size] for i in range(0, len(list), chunk_size)]
