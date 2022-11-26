@@ -121,9 +121,17 @@ class AgentWithContext:
                 if save_cmd == "stats":
                     self.grapher.save_stats(self.agent.info)
                 elif save_cmd == "graph":
-                    print("Creating performance graph of current learning...")
-                    file = self.grapher.avg_score_graph(".", time(), self.info)
-                    print(f"Graph created and saved as \"{file}\".")
+                    graph_cmd = await ainput("Write 'avg', 'best' or 'abort' to go back: ")
+                    if graph_cmd == "avg":
+                        print("Creating performance graph of current learning...")
+                        file = self.grapher.get_score_graph("avg", ".", time(), self.info)
+                        print(f"Graph created and saved as \"{file}\".")
+                    elif graph_cmd == "best":
+                        print("Creating performance graph of current learning...")
+                        file = self.grapher.get_score_graph("best", ".", time(), self.info)
+                        print(f"Graph created and saved as \"{file}\".")
+                    elif graph_cmd == "abort":
+                        continue
                 elif save_cmd == "model":
                     print("Saving current model state...")
                     file = self.to_file(time())
