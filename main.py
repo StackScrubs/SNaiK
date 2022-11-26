@@ -3,13 +3,15 @@ from typing_extensions import Self
 from agent import Agent, QLearningAgent, DQNAgent, RenderingAgentDecorator, RandomAgent
 from graphing import Grapher
 from agent import Agent, QLearningAgent, RenderingAgentDecorator, RandomAgent
-from utils.context import Context
-from utils.option_handlers import RequiredByWhenSetTo
+from utils.context import Context, AgentContext
+from utils.option_handlers import RequiredByWhenSetTo, OneOf
 from pickle import dumps, loads
 from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
 from dqn import ModelType, LinearDQN, ConvolutionalDQN
+import sys
+from graphing import StatsType
 
 import click
 import asyncio
@@ -91,9 +93,10 @@ class AgentWithContext:
         with open(file_path, "rb") as f:
             return loads(f.read())
         
-    def to_file(self, file_name) -> str:
+    def to_file(self) -> str:
+        from time import time
         base_path = "."
-        file_name = f"{base_path}/{file_name}.qbf"
+        file_name = f"{base_path}/{time()}.qbf"
         with open(file_name, "wb") as f:
             f.write(dumps(self))
 
@@ -110,31 +113,50 @@ class AgentWithContext:
         )
     
     async def __parse_cmd(self):
-        from time import time
         while True:
-            cmd = await ainput("Write 'save', 'graph avg/best' or 'info': ")
-            
+            cmd = await ainput("Write 'save', 'info' or 'exit': ")
             if cmd == "save":
-                print("Saving current model state...")
-                file = self.to_file(time())
-                print(f"Saved model state as \"{file}\".")
-            
-            elif cmd == "graph avg":
-                print("Creating performance graph of current learning...")
-                file = self.grapher.get_score_graph("avg", ".", time(), self.info)
-                print(f"Graph created and saved as \"{file}\".")
-            
-            elif cmd == "graph best":
-                print("Creating performance graph of current learning...")
-                file = self.grapher.get_score_graph("best", ".", time(), self.info)
-                print(f"Graph created and saved as \"{file}\".")
-            
+                self.__parse_save_cmd()
             elif cmd == "info":
                 print(self.info)
-            
+            elif cmd == "exit":
+                print("Exiting...")
+                sys.tracebacklimit = 0
+                sys.exit(1)
             else:
                 await aprint(f"Invalid command '{cmd}'.")
-    
+
+    async def __parse_save_cmd(self):
+        cmd = await ainput("Write 'model', 'graph', 'stats', or 'abort' to go back: ")
+        if cmd == "stats":
+            stats_cmd = await ainput("Write 'avg', 'best' or 'abort' to go back: ")
+            if stats_cmd == "abort":
+                return
+            elif stats_cmd in ["avg", "best"]:
+                print("Gathering stats from current learning...")
+                file = self.grapher.save_stats(stats_cmd, self.agent.info)
+                print(f"Stats saved as \"{file}\".")
+            else:
+                await aprint(f"Invalid command '{stats_cmd}'.")
+        elif cmd == "graph":
+            graph_cmd = await ainput("Write 'avg', 'best' or 'abort' to go back: ")
+            if graph_cmd == "abort":
+                return
+            elif graph_cmd in ["avg", "best"]:
+                print("Creating performance graph of current learning...")
+                file = self.grapher.get_score_graph(graph_cmd, self.info)
+                print(f"Graph created and saved as \"{file}\".")
+            else:
+                await aprint(f"Invalid command '{graph_cmd}'.")
+        elif cmd == "model":
+            print("Saving current model state...")
+            file = self.to_file()
+            print(f"Saved model state as \"{file}\".")
+        elif cmd == "abort":
+            return
+        else:
+            await aprint(f"Invalid command '{cmd}'.")
+
     @property
     def info(self) -> dict:
         return {
@@ -160,8 +182,9 @@ class AgentRunner:
             
             self.grapher.update(episode, score)
             await asyncio.sleep(0)
-        
-        self.grapher.avg_score_graph(".", time(), self.info)
+
+        print(f"\nFinished running {self.ctx.episodes} episodes")
+        print("Write 'save', 'graph' or 'info': ", end="")
         
     @property
     def info(self) -> dict:
