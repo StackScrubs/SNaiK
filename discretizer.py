@@ -9,6 +9,9 @@ class DiscretizerType(str, Enum):
     QUAD = "quad"
     ANGULAR = "angular"
 
+    def __str__(self):
+        return self.value
+
 class Discretizer:
     def __init__(self, grid_size: int):
         self.grid_size = grid_size

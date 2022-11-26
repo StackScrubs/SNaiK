@@ -15,6 +15,9 @@ class AgentType(str, Enum):
     RANDOM = "random"
     QLEARNING = "qlearning"
 
+    def __str__(self):
+        return self.value
+
 class Agent:
     def __init__(self, ctx: AgentContext):
         self.env = ctx.env
