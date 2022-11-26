@@ -124,7 +124,6 @@ class RandomAgent(Agent):
     
     def update(self):
         action = self.__get_random_action()
-        self.__step += 1
         return self._env_update(action)
     
     
@@ -171,89 +170,94 @@ class DQNAgent(Agent):
     
     def __init__(self, ctx: AgentContext, nn: DQN):
         super().__init__(ctx)
-        self.nn = nn
-        self.steps = 0
-        self.grid_size = ctx.size
-        self.alpha = ctx.alpha
-        self.gamma = ctx.gamma
+        self.__nn = nn
+        self.__steps = 0
+        self.__grid_size = ctx.size
+        self.__alpha = ctx.alpha
+        self.__gamma = ctx.gamma
 
-        self.channels = 3
-        self.memory_size = 100_000
-        self.batch_size = 256
-        self.T = 1100
-        self.epsilon_start = 0.9
-        self.epsilon_end = 0.1
-        self.epsilon_decay = 500
+        self.__channels = 3
+        self.__memory_size = 100_000
+        self.__batch_size = 256
+        self.__T = 1100
+        self.__epsilon_start = 0.9
+        self.__epsilon_end = 0.1
+        self.__epsilon_decay = 500
 
-        self.policy_net = self.nn
-        self.target_net = deepcopy(self.nn)
+        self.__policy_net = self.__nn
+        self.__target_net = deepcopy(self.__nn)
 
-        self.replay_memory = ReplayMemory(self.memory_size, self.channels, self.grid_size)
-        self.tensorized_obs = self.__tensorize_observation(ctx.env.reset())
+        self.__replay_memory = ReplayMemory(self.__memory_size, self.__channels, self.__grid_size)
+        self.__tensorized_obs = self.__tensorize_observation(ctx.env.reset())
 
-        self.policy_net.train(True)
-        self.target_net.train(False)
+        self.__policy_net.train(True)
+        self.__target_net.train(False)
         
-        self.policy_net.init_layers()
-        self.__copy_q_to_target()
+        self.__policy_net.init_layers()
+        self.__copy_policy_to_target()
 
-        self.optimizer = torch.optim.AdamW(self.policy_net.parameters(), lr=self.alpha)
+        self.__optimizer = torch.optim.AdamW(self.__policy_net.parameters(), lr=self.__alpha)
 
     def get_optimal_action(self, observation) -> int:
         observation = self.__tensorize_observation(observation)
         with torch.no_grad():
-            action_q_vals = self.policy_net(observation.view(1, self.channels, self.grid_size, self.grid_size)) 
+            action_q_vals = self.__policy_net(observation.view(1, self.__channels, self.__grid_size, self.__grid_size)) 
         return torch.argmax(action_q_vals).item()
 
     def initialize(self):
-        self.__experience_initial()
+        for _ in range(20_000):
+            self.__experience_replay(explore_only=True)
+        self.__tensorized_obs = self.__tensorize_observation(self.env.reset())
 
     def update(self):
         observation, reward, terminated, truncated, info = self.__experience_replay()
-        
-        states, new_states, actions, rewards = self.replay_memory.sample_batched(self.batch_size)
-        
-        # Reshape the states so they fit in the DQN model
-        states = states.view(self.batch_size, self.channels, self.grid_size, self.grid_size)
-        new_states = new_states.view(self.batch_size, self.channels, self.grid_size, self.grid_size)
-        
-        q_arrays = None
-        with torch.no_grad():
-            q_arrays = self.target_net(new_states)
-        q_max, _ = torch.max(q_arrays, axis=1, keepdim=True)
-        q_values = torch.multiply(q_max, self.gamma) + rewards.view(-1, 1)
-
-        self.optimizer.zero_grad()
-        self.policy_net.loss(states, actions, q_values).backward()
-
-        for param in self.policy_net.parameters():
-            param.grad.data.clamp(-1, 1)
-        self.optimizer.step()
-
-        self.steps += 1
-        if self.steps % self.T == 0:
-            self.__copy_q_to_target()
-            
+        self.__train_policy_net()
+        self.__step()
         return observation, reward, terminated, truncated, info
 
     def __memorize(self, state: torch.Tensor, new_state: torch.Tensor, action: int, reward: int): 
-        self.replay_memory.push(state, new_state, action, reward)
+        self.__replay_memory.push(state, new_state, action, reward)
 
     def __get_random_action(self):
         return randint(0, 2)
 
     def __get_action(self) -> int:
-        epsilon = self.epsilon_end \
-                    + (self.epsilon_start - self.epsilon_end) \
-                    * np.exp(-1 * self.steps / self.epsilon_decay)
+        epsilon = self.__epsilon_end \
+                    + (self.__epsilon_start - self.__epsilon_end) \
+                    * np.exp(-1 * self.__steps / self.__epsilon_decay)
                     
         if np.random.random() < epsilon:
             return self.__get_random_action()
-        else:
-            action_q_vals = None
-            with torch.no_grad():
-                action_q_vals = self.policy_net(self.tensorized_obs.view(1, self.channels, self.grid_size, self.grid_size))
-            return torch.argmax(action_q_vals).item()
+        
+        action_q_vals = None
+        with torch.no_grad():
+            action_q_vals = self.__policy_net(self.__tensorized_obs.view(1, self.__channels, self.__grid_size, self.__grid_size))
+        return torch.argmax(action_q_vals).item()
+
+    def __train_policy_net(self):
+        states, new_states, actions, rewards = self.__replay_memory.sample_batched(self.__batch_size)
+        
+        # Reshape the states so they fit in the DQN model
+        states = states.view(self.__batch_size, self.__channels, self.__grid_size, self.__grid_size)
+        new_states = new_states.view(self.__batch_size, self.__channels, self.__grid_size, self.__grid_size)
+        
+        q_arrays = None
+        with torch.no_grad():
+            q_arrays = self.__target_net(new_states)
+        q_max, _ = torch.max(q_arrays, axis=1, keepdim=True)
+        q_values = torch.multiply(q_max, self.__gamma) + rewards.view(-1, 1)
+
+        self.__optimizer.zero_grad()
+        self.__policy_net.loss(states, actions, q_values).backward()
+
+        for param in self.__policy_net.parameters():
+            param.grad.data.clamp(-1, 1)
+        self.__optimizer.step()
+
+    def __step(self):
+        self.__steps += 1
+        if self.__steps % self.__T == 0:
+            self.__copy_policy_to_target()
 
     def __experience_replay(self, explore_only=False):
         action = self.__get_action() if not explore_only else self.__get_random_action()
@@ -261,23 +265,18 @@ class DQNAgent(Agent):
         observation, reward, terminated, truncated, info = self._env_update(action)
 
         new_observation = self.__tensorize_observation(observation)
-        self.__memorize(self.tensorized_obs, new_observation, action, reward)
-        self.tensorized_obs = new_observation
+        self.__memorize(self.__tensorized_obs, new_observation, action, reward)
+        self.__tensorized_obs = new_observation
         
         return observation, reward, terminated, truncated, info
 
-    def __experience_initial(self):
-        for _ in range(20_000):
-            self.__experience_replay(explore_only=True)
-        self.tensorized_obs = self.__tensorize_observation(self.env.reset())
-
-    def __copy_q_to_target(self):
-        self.target_net.load_state_dict(deepcopy(self.policy_net.state_dict()))
+    def __copy_policy_to_target(self):
+        self.__target_net.load_state_dict(deepcopy(self.__policy_net.state_dict()))
 
     def __tensorize_observation(self, observation) -> torch.Tensor:
         t = torch.tensor(observation["grid"], dtype=torch.uint8)
-        s = torch.zeros((self.channels, self.grid_size, self.grid_size))
-        for i in range(0, self.channels):
+        s = torch.zeros((self.__channels, self.__grid_size, self.__grid_size))
+        for i in range(0, self.__channels):
             s[i] = torch.where(t == i + 1, t // (i + 1), 0)
         return s
 
@@ -285,5 +284,5 @@ class DQNAgent(Agent):
     def info(self) -> dict:
         return {
             **super().info,
-            "nn": self.nn.info,
+            "nn": self.__nn.info,
         }

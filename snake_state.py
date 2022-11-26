@@ -205,7 +205,7 @@ class SnakeState:
         ate = self._snake_step()
         return ate
     
-    def kill(self):
+    def __kill(self):
         self.__alive = False
 
     def _snake_step(self) -> bool:
@@ -216,7 +216,7 @@ class SnakeState:
             Vec2(0, 0),
             Vec2(self.__grid.size - 1, self.__grid.size - 1)
         ):
-            self.kill()
+            self.__kill()
             return
 
         hit = self.__grid.get_cell(next_head_pos)
@@ -225,7 +225,7 @@ class SnakeState:
         hit_deadly = hit_any and not ate
 
         if hit_deadly:
-            self.kill()
+            self.__kill()
             return
 
         if ate:

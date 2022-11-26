@@ -116,7 +116,7 @@ class AgentWithContext:
         while True:
             cmd = await ainput("Write 'save', 'info' or 'exit': ")
             if cmd == "save":
-                self.__parse_save_cmd()
+                await self.__parse_save_cmd()
             elif cmd == "info":
                 print(self.info)
             elif cmd == "exit":
@@ -144,7 +144,7 @@ class AgentWithContext:
                 return
             elif graph_cmd in ["avg", "best"]:
                 print("Creating performance graph of current learning...")
-                file = self.grapher.get_score_graph(graph_cmd, self.info)
+                file = self.grapher.get_score_graph(graph_cmd, ".", self.info)
                 print(f"Graph created and saved as \"{file}\".")
             else:
                 await aprint(f"Invalid command '{graph_cmd}'.")
