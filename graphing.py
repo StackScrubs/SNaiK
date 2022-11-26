@@ -12,8 +12,6 @@ class Grapher:
     def update(self, episode, score):
         self.episodes.append(episode), 
         self.scores.append(score),
-        
-        
     
     def _reduce_to_avg(self, list: list, chunk_size: int):
         """Divides a long list of values into chunks and finds the average value of each chunk."""
