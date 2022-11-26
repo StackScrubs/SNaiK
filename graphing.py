@@ -1,11 +1,10 @@
 from matplotlib import pyplot as plt
 from matplotlib.offsetbox import AnchoredText
 from math import floor
-from utils.flatten_dict import flatten_dict
 from time import time
 from enum import Enum
 
-class GraphType(str, Enum):
+class StatsType(str, Enum):
     AVG = "avg"
     BEST = "best"
 
@@ -22,6 +21,10 @@ class Grapher:
     def update(self, episode, score):
         self.episodes.append(episode), 
         self.scores.append(score),
+
+    def _get_chunk_size(self):
+        return floor(len(self.episodes) / self.NUMBER_OF_CHUNKS)
+
     
     def _reduce_to_avg(self, list: list, chunk_size: int):
         """Divides a long list of values into chunks and finds the average value of each chunk."""
@@ -42,16 +45,14 @@ class Grapher:
                 res += f"{prefix}{key}: {info[key]}\n"
         return res
 
-    def __reduce(self, graph_type: GraphType, chunk_size):
-        if graph_type == GraphType.BEST:
+    def __reduce(self, graph_type: StatsType, chunk_size):
+        if graph_type == StatsType.BEST:
             return self._reduce_to_best(self.episodes, chunk_size), self._reduce_to_best(self.scores, chunk_size)
-        elif graph_type == GraphType.AVG:
+        elif graph_type == StatsType.AVG:
             return self._reduce_to_avg(self.episodes, chunk_size), self._reduce_to_avg(self.scores, chunk_size)
 
-    def get_score_graph(self, graph_type: GraphType, base_path, file_name, card_info) -> str:
-        chunk_size = floor(len(self.episodes) / self.NUMBER_OF_CHUNKS)
-        
-        episodes, scores = self.__reduce(graph_type, chunk_size)
+    def get_score_graph(self, graph_type: StatsType, base_path, card_info) -> str:        
+        episodes, scores = self.__reduce(graph_type, self._get_chunk_size())
         
         _, ax = plt.subplots()
         at = AnchoredText(
@@ -66,19 +67,31 @@ class Grapher:
         plt.title(f"{graph_type} score over episodes")
         plt.xlabel("Episode")
         plt.ylabel("Score")
-        file_name = f"{base_path}/{graph_type}_score_graph_{file_name}.png"
+        file_name = f"{base_path}/{graph_type}_score_graph_{time()}.png"
         plt.savefig(file_name)
         
         return file_name
 
-    def save_stats(self, graph_type: GraphType, stats_for: dict):
+    @staticmethod
+    def _extract_dict_values(in_dict):
+        li = []
+        if type(in_dict) is not dict:
+            return li
+
+        for v in in_dict.values():
+            if type(v) == dict:
+                li += Grapher._extract_dict_values(v)
+            else:
+                li.append(v)
+
+        return li
+
+    def save_stats(self, graph_type: StatsType, stats_for: dict):
         from json import dump
 
-        chunk_size = floor(len(self.episodes) / self.NUMBER_OF_CHUNKS)
-
-        episodes, scores = self.__reduce(graph_type, chunk_size)
+        episodes, scores = self.__reduce(graph_type, self._get_chunk_size())
         data = {
-            "label": ', '.join([str(x) for x in flatten_dict(stats_for).values()]),
+            "label": ', '.join([str(x) for x in Grapher._extract_dict_values(stats_for)]),
             "episodes": episodes,
             "scores": scores
         }

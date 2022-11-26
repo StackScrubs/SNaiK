@@ -9,7 +9,7 @@ from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
 import sys
-from graphing import GraphType
+from graphing import StatsType
 
 import click
 import asyncio
@@ -95,9 +95,10 @@ class AgentWithContext:
         with open(file_path, "rb") as f:
             return loads(f.read())
         
-    def to_file(self, file_name) -> str:
+    def to_file(self) -> str:
+        from time import time
         base_path = "."
-        file_name = f"{base_path}/{file_name}.qbf"
+        file_name = f"{base_path}/{time()}.qbf"
         with open(file_name, "wb") as f:
             f.write(dumps(self))
 
@@ -114,47 +115,10 @@ class AgentWithContext:
         )
     
     async def __parse_cmd(self):
-        from time import time
         while True:
             cmd = await ainput("Write 'save', 'info' or 'exit': ")
             if cmd == "save":
-                save_cmd = await ainput("Write 'model', 'graph', 'stats', or 'abort' to go back: ")
-                if save_cmd == "stats":
-                    stats_cmd = await ainput("Write 'avg', 'best' or 'abort' to go back: ")
-                    if stats_cmd == "avg":
-                        print("Gathering stats from current learning...")
-                        file = self.grapher.save_stats(GraphType.AVG, self.agent.info)
-                        print(f"Stats saved as \"{file}\".")
-                    elif stats_cmd == "best":
-                        print("Gathering stats from current learning...")
-                        file = self.grapher.save_stats(GraphType.BEST, self.agent.info)
-                        print(f"Stats saved as \"{file}\".")
-                    elif stats_cmd == "abort":
-                        continue
-                    else:
-                        await aprint(f"Invalid command '{cmd}'.")
-                elif save_cmd == "graph":
-                    graph_cmd = await ainput("Write 'avg', 'best' or 'abort' to go back: ")
-                    if graph_cmd == "avg":
-                        print("Creating performance graph of current learning...")
-                        file = self.grapher.get_score_graph(GraphType.AVG, ".", time(), self.info)
-                        print(f"Graph created and saved as \"{file}\".")
-                    elif graph_cmd == "best":
-                        print("Creating performance graph of current learning...")
-                        file = self.grapher.get_score_graph(GraphType.BEST, ".", time(), self.info)
-                        print(f"Graph created and saved as \"{file}\".")
-                    elif graph_cmd == "abort":
-                        continue
-                    else:
-                        await aprint(f"Invalid command '{cmd}'.")
-                elif save_cmd == "model":
-                    print("Saving current model state...")
-                    file = self.to_file(time())
-                    print(f"Saved model state as \"{file}\".")
-                elif save_cmd == "abort":
-                    continue
-                else:
-                    await aprint(f"Invalid command '{cmd}'.")
+                self.__parse_save_cmd()
             elif cmd == "info":
                 print(self.info)
             elif cmd == "exit":
@@ -163,7 +127,38 @@ class AgentWithContext:
                 sys.exit(1)
             else:
                 await aprint(f"Invalid command '{cmd}'.")
-    
+
+    async def __parse_save_cmd(self):
+        cmd = await ainput("Write 'model', 'graph', 'stats', or 'abort' to go back: ")
+        if cmd == "stats":
+            stats_cmd = await ainput("Write 'avg', 'best' or 'abort' to go back: ")
+            if stats_cmd == "abort":
+                return
+            elif stats_cmd in ["avg", "best"]:
+                print("Gathering stats from current learning...")
+                file = self.grapher.save_stats(stats_cmd, self.agent.info)
+                print(f"Stats saved as \"{file}\".")
+            else:
+                await aprint(f"Invalid command '{stats_cmd}'.")
+        elif cmd == "graph":
+            graph_cmd = await ainput("Write 'avg', 'best' or 'abort' to go back: ")
+            if graph_cmd == "abort":
+                return
+            elif graph_cmd in ["avg", "best"]:
+                print("Creating performance graph of current learning...")
+                file = self.grapher.get_score_graph(graph_cmd, self.info)
+                print(f"Graph created and saved as \"{file}\".")
+            else:
+                await aprint(f"Invalid command '{graph_cmd}'.")
+        elif cmd == "model":
+            print("Saving current model state...")
+            file = self.to_file()
+            print(f"Saved model state as \"{file}\".")
+        elif cmd == "abort":
+            return
+        else:
+            await aprint(f"Invalid command '{cmd}'.")
+
     @property
     def info(self) -> dict:
         return {
@@ -189,10 +184,6 @@ class AgentRunner:
             
             self.grapher.update(episode, score)
             await asyncio.sleep(0)
-        
-        #if self.ctx.save_stats:
-        #    file_name = self.grapher.save_stats(self.agent.info)
-        #    print(f"Saved score statistics to {file_name}")
 
         print(f"\nFinished running {self.ctx.episodes} episodes")
         print("Write 'save', 'graph' or 'info': ", end="")

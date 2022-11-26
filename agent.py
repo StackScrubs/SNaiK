@@ -49,7 +49,7 @@ class Agent:
     @property
     def info(self) -> dict:
         return {
-            "agent-type": self.TYPE,
+            "type": self.TYPE,
         }
 
 class RenderingAgentDecorator(Agent):

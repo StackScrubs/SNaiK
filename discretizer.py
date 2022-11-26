@@ -21,7 +21,7 @@ class Discretizer:
                 
     @property
     def info(self) -> dict:
-        return {"discretizer-type": self.TYPE}
+        return {"type": self.TYPE}
 
 
 """
