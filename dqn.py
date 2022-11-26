@@ -6,7 +6,7 @@ class ModelType(str, Enum):
     LINEAR = "linear"
     CONVOLUTIONAL = "convolutional"
 
-def get_next_odd(x: int):
+def get_next_odd_number(x: int):
     return x+(x % 2 + 1)%2
 
 class DQN(nn.Module):
@@ -19,7 +19,6 @@ class DQN(nn.Module):
     def loss(self, state, action, target_val):
         actionq_values = torch.gather(self.logits(state), 1, action.view(-1, 1))
         return nn.functional.mse_loss(actionq_values, target_val)
-        return nn.functional.huber_loss(q_valurd, target_val)
 
     def init_layers(self):
         self.logits.apply(DQN.__init_layer_weights)
@@ -40,27 +39,13 @@ class LinearDQN(DQN):
     def __init__(self, grid_size):
         super(LinearDQN, self).__init__()
 
-        # self.logits = nn.Sequential(
-        #     #nn.LSTM(grid_size**2*3, grid_size**2*3),
-        #     nn.Flatten(),
-        #     nn.Linear(grid_size**2 * 3, grid_size**2),
-        #     nn.ReLU(),
-        #     nn.Linear(grid_size**2, 8),
-
-        #     nn.Softmax(1)   
-        # )
-
+        in_features = 3 * grid_size**2
+        
         self.logits = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(grid_size**2 * 3, grid_size**2 * 3),
-            nn.Softmax(1),
-            nn.Linear(grid_size**2 * 3, grid_size**2 * 3),
-            nn.Softmax(1),
-            nn.Dropout1d(p=0.2),
-            nn.Linear(grid_size**2 * 3, grid_size**2 * 3),
-            nn.Softmax(1),
-            nn.Linear(grid_size**2 * 3, 3),
-            # nn.Linear(grid_size**2, 3),
+            nn.Linear(in_features, in_features * 3),
+            nn.ReLU(),
+            nn.Linear(in_features * 3, 3),
             nn.Softmax(1)
         )
 
@@ -70,7 +55,7 @@ class ConvolutionalDQN(DQN):
     def __init__(self, grid_size):
         super(ConvolutionalDQN, self).__init__()
         
-        kernel_size = get_next_odd(grid_size//2)
+        kernel_size = get_next_odd_number(grid_size//2)
         out_channels = 3*24
         
         self.logits = nn.Sequential(
