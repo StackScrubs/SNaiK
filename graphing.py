@@ -12,12 +12,10 @@ class Grapher:
     def update(self, episode, score):
         self.episodes.append(episode), 
         self.scores.append(score),
-        
-        
     
     def _reduce_to_avg(self, list: list, chunk_size: int):
         """Divides a long list of values into chunks and finds the average value of each chunk."""
-        chunks = [list[i:i + chunk_size] for i in range(0, len(list), chunk_size)]
+        chunks = [list[i:(i + chunk_size)] for i in range(0, len(list), chunk_size)]
         return [sum(chunks[i]) / len(chunks[i]) for i in range(len(chunks))]
     
     def _bullet_list(self, prefix:str, t: dict):

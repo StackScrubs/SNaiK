@@ -1,6 +1,4 @@
-from transition import Transition
-from random import shuffle, sample, randint
-from collections import deque
+from random import randint
 import torch
 
 class ReplayMemory:
@@ -14,7 +12,7 @@ class ReplayMemory:
         self.__len = 0
 
     def push(self, state, new_state, action, reward):
-        """Save a transition, and if full, removes the leftmost transition"""
+        """Save a transition, and if full, overwrites the leftmost transition"""
         self.__len = min(self.__len + 1, self.__cap)
         self.__states[self.__write_index] = state
         self.__new_states[self.__write_index] = new_state
@@ -26,7 +24,7 @@ class ReplayMemory:
         s = set()
         while len(s) < batch_size:
             s.add(randint(0, self.__len - 1))
-        return torch.tensor(list(s), dtype=torch.long)
+        return torch.tensor(list(s), dtype=torch.long) # TODO: check if long needed
     
     def sample_batched(self, batch_size):
         indices = self.random_indices(batch_size)

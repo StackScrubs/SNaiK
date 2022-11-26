@@ -121,6 +121,7 @@ class RandomAgent(Agent):
     
     def update(self):
         action = self.__get_random_action()
+        self.__step += 1
         return self._env_update(action)
     
     
@@ -168,7 +169,7 @@ class DQNAgent(Agent):
     def __init__(self, ctx: AgentContext, nn: DQN):
         super().__init__(ctx)
         self.nn = nn
-        self.total_steps = 0
+        self.steps = 0
         self.grid_size = ctx.size
         self.alpha = ctx.alpha
         self.gamma = ctx.gamma
@@ -226,7 +227,8 @@ class DQNAgent(Agent):
             param.grad.data.clamp(-1, 1)
         self.optimizer.step()
 
-        if self.total_steps % self.T == 0:
+        self.steps += 1
+        if self.steps % self.T == 0:
             self.__copy_q_to_target()
             
         return observation, reward, terminated, truncated, info
@@ -240,10 +242,8 @@ class DQNAgent(Agent):
     def __get_action(self) -> int:
         epsilon = self.epsilon_end \
                     + (self.epsilon_start - self.epsilon_end) \
-                    * np.exp(-1 * self.total_steps / self.epsilon_decay)
-
-        self.total_steps += 1
-
+                    * np.exp(-1 * self.steps / self.epsilon_decay)
+                    
         if np.random.random() < epsilon:
             return self.__get_random_action()
         else:

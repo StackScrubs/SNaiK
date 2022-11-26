@@ -1,12 +1,10 @@
 from __future__ import annotations
 from typing_extensions import Self
-from snake_env import SnakeEnv
 from agent import Agent, QLearningAgent, DQNAgent, RenderingAgentDecorator, RandomAgent
-import click
 from graphing import Grapher
 from agent import Agent, QLearningAgent, RenderingAgentDecorator, RandomAgent
 from utils.context import Context
-from utils.option_handlers import RequiredByWhenSetTo, OneOf
+from utils.option_handlers import RequiredByWhenSetTo
 from pickle import dumps, loads
 from aioconsole import ainput, aprint
 from dataclasses import dataclass
@@ -115,16 +113,20 @@ class AgentWithContext:
         from time import time
         while True:
             cmd = await ainput("Write 'save', 'graph' or 'info': ")
+            
             if cmd == "save":
                 print("Saving current model state...")
                 file = self.to_file(time())
                 print(f"Saved model state as \"{file}\".")
+            
             elif cmd == "graph":
                 print("Creating performance graph of current learning...")
                 file = self.grapher.avg_score_graph(".", time(), self.info)
                 print(f"Graph created and saved as \"{file}\".")
+            
             elif cmd == "info":
                 print(self.info)
+            
             else:
                 await aprint(f"Invalid command '{cmd}'.")
     
