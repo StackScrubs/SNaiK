@@ -3,6 +3,7 @@ from matplotlib.offsetbox import AnchoredText
 from math import floor
 from time import time
 from enum import Enum
+from numba import jit
 
 class StatsType(str, Enum):
     AVG = "avg"
@@ -29,21 +30,33 @@ class Grapher:
     def __chunkize(l: list, chunk_size: int):
         return (l[i:i+chunk_size] for i in range(0, len(l), chunk_size))
     
-    def _reduce_to_avg(self, l: list, chunk_size: int):
-        """Divides a long list of values into chunks and finds the average value of each chunk."""
-        chunks = self.__chunkize(l, chunk_size)
-        return [sum(chunk) / len(chunk) for chunk in chunks]
+    @staticmethod
+    @jit
+    def _simple_moving_average(l: list):
+        sample_size = len(l) // 100
+        avgs = []
+        for i in range(len(l) - (sample_size - 1)):
+            sample = l[i:i+sample_size]
+            avgs.append(sum(sample) / len(sample))
+        return avgs
     
-    def _reduce_to_best(self, l: list, chunk_size: int):
-        """Divides a long list of values into chunks and finds the best value in each chunk."""
-        chunks = self.__chunkize(l, chunk_size)
-        return [max(chunk) for chunk in chunks]
+    @staticmethod
+    @jit
+    def _simple_moving_maximum(l: list):
+        sample_size = len(l) // 20
+        maxs = []
+        for i in range(len(l) - (sample_size - 1)):
+            sample = l[i:i+sample_size]
+            maxs.append(max(sample))
+        return maxs
     
     def __reduce(self, graph_type: StatsType, chunk_size):
         if graph_type == StatsType.BEST:
-            return self._reduce_to_best(self.episodes, chunk_size), self._reduce_to_best(self.scores, chunk_size)
+            maxs = self._simple_moving_maximum(self.scores)
+            return self.episodes[:len(maxs)], maxs
         elif graph_type == StatsType.AVG:
-            return self._reduce_to_avg(self.episodes, chunk_size), self._reduce_to_avg(self.scores, chunk_size)
+            avgs = self._simple_moving_average(self.scores)
+            return self.episodes[:len(avgs)], avgs
     
     def _bullet_list(self, prefix:str, info: dict):
         res = ""
