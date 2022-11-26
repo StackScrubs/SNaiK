@@ -2,8 +2,6 @@ from matplotlib import pyplot as plt
 from matplotlib.offsetbox import AnchoredText
 from math import floor
 from enum import Enum
-from scipy.interpolate import make_interp_spline
-import numpy as np
 
 class GraphType(str, Enum):
     AVG = "avg"
@@ -23,7 +21,7 @@ class Grapher:
     def _reduce_to_avg(self, list: list, chunk_size: int):
         """Divides a long list of values into chunks and finds the average value of each chunk."""
         chunks = [list[i:(i + chunk_size)] for i in range(0, len(list), chunk_size)]
-        return [sum(chunks[i]) / len(chunks[i]) for i in range(len(chunks) - 1)]
+        return [sum(chunks[i]) / len(chunks[i]) for i in range(len(chunks))]
     
     def _reduce_to_best(self, list: list, chunk_size: int):
         """Divides a long list of values into chunks and finds the best value in each chunk."""
@@ -58,12 +56,7 @@ class Grapher:
         )
         ax.add_artist(at)
         
-        X_Y_spline = make_interp_spline(episode_plots, score_plots)
-        X_ = np.linspace(np.min(episode_plots), np.max(episode_plots), self.NUMBER_OF_CHUNKS*64)
-        Y_ = X_Y_spline(X_)
-        
-        # plt.plot(episode_plots, score_plots)
-        plt.plot(X_, Y_)
+        plt.plot(episode_plots, score_plots)
         plt.title(f"{type} score over episodes")
         plt.xlabel("Episode")
         plt.ylabel("Score")
