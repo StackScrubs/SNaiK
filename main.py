@@ -2,12 +2,13 @@ from __future__ import annotations
 from typing_extensions import Self
 from graphing import Grapher
 from agent import Agent, QLearningAgent, RenderingAgentDecorator, RandomAgent
-from utils.context import Context
+from utils.context import Context, AgentContext
 from utils.option_handlers import RequiredByWhenSetTo, OneOf
 from pickle import dumps, loads
 from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
+import sys, traceback
 
 import click
 import asyncio
@@ -114,17 +115,27 @@ class AgentWithContext:
     async def __parse_cmd(self):
         from time import time
         while True:
-            cmd = await ainput("Write 'save', 'graph' or 'info': ")
+            cmd = await ainput("Write 'save', 'info' or 'exit': ")
             if cmd == "save":
-                print("Saving current model state...")
-                file = self.to_file(time())
-                print(f"Saved model state as \"{file}\".")
-            elif cmd == "graph":
-                print("Creating performance graph of current learning...")
-                file = self.grapher.avg_score_graph(".", time(), self.info)
-                print(f"Graph created and saved as \"{file}\".")
+                save_cmd = await ainput("Write 'model', 'graph', 'stats', or 'abort' to go back: ")
+                if save_cmd == "stats":
+                    self.grapher.save_stats(self.agent.info)
+                elif save_cmd == "graph":
+                    print("Creating performance graph of current learning...")
+                    file = self.grapher.avg_score_graph(".", time(), self.info)
+                    print(f"Graph created and saved as \"{file}\".")
+                elif save_cmd == "model":
+                    print("Saving current model state...")
+                    file = self.to_file(time())
+                    print(f"Saved model state as \"{file}\".")
+                elif save_cmd == "abort":
+                    continue
             elif cmd == "info":
                 print(self.info)
+            elif cmd == "exit":
+                print("Exiting...")
+                sys.tracebacklimit = 0
+                sys.exit(1)
             else:
                 await aprint(f"Invalid command '{cmd}'.")
     
@@ -154,7 +165,12 @@ class AgentRunner:
             self.grapher.update(episode, score)
             await asyncio.sleep(0)
         
-        self.grapher.avg_score_graph(".", time(), self.info)
+        #if self.ctx.save_stats:
+        #    file_name = self.grapher.save_stats(self.agent.info)
+        #    print(f"Saved score statistics to {file_name}")
+
+        print(f"\nFinished running {self.ctx.episodes} episodes")
+        print("Write 'save', 'graph' or 'info': ", end="")
         
     @property
     def info(self) -> dict:

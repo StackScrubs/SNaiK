@@ -19,6 +19,7 @@ class Context:
     def __init__(self, alpha: float, gamma: float, size: int, episodes: int, seed: int | None, render: bool):
         self.render = render
         self.episodes = episodes
+        
         self.__agent_context = AgentContext(alpha=alpha, gamma=gamma, size=size, seed=seed)
     
     @property
