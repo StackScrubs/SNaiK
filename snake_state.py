@@ -192,7 +192,6 @@ class SnakeState:
     def has_won(self):
         return len(self.__snake) >= self.__grid.size**2
 
-    # Snakes relative turn direction, converted to constant env direction
     def turn_left(self):
         self.__direction = self.__direction.turn_left()
 

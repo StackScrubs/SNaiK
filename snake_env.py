@@ -56,7 +56,6 @@ class SnakeEnv(gym.Env):
         self.max_steps = size**2
         self.score = 0
 
-        # Target's location, Neo's location and length
         self.observation_space = spaces.Dict({
             "head": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
             "direction": spaces.Discrete(4),
@@ -92,28 +91,28 @@ class SnakeEnv(gym.Env):
         won = self.state.has_won
         observation = self._get_obs()
         
-        if self.steps >= self.max_steps:
-            self.state.kill()
-        
         self.steps += 1
         reward = 0
-        if ate:
+        truncated = not self.state.is_alive
+        terminated = won
+        
+        if won:
+            reward = 1000 * self.state.snake_length
+            terminated = True
+        elif not self.state.is_alive:
+            reward = -500
+        elif ate:
             self.score += 1
-            reward = 1 / self.steps
+            reward = 100 * self.state.snake_length
             self.steps = 0
+        elif self.steps >= self.max_steps:
+            truncated = True
         else:
             new_dist_to_apple = self.state.head_position.manhattan_dist(self.state.apple_position)
             reward = dist_to_apple - new_dist_to_apple
-            #if reward < 0:
-            #    reward *= 10
-            
-        if won:
-            reward = 50
-        if not self.state.is_alive:
-            reward = -50
-            
-        terminated = won
-        truncated = not self.state.is_alive
+            if reward < 0:
+                reward *= 10
+
         info = self.score
 
         self._render()

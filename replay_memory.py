@@ -6,7 +6,7 @@ class ReplayMemory:
         self.__cap = capacity
         self.__states = torch.zeros(capacity, channels, grid_size, grid_size)
         self.__new_states = torch.zeros(capacity, channels, grid_size, grid_size)
-        self.__actions = torch.zeros(capacity, dtype=torch.long) # TODO: check if long needed
+        self.__actions = torch.zeros(capacity, dtype=torch.long)
         self.__rewards = torch.zeros(capacity)
         self.__write_index = 0
         self.__len = 0
@@ -24,7 +24,7 @@ class ReplayMemory:
         s = set()
         while len(s) < batch_size:
             s.add(randint(0, self.__len - 1))
-        return torch.tensor(list(s), dtype=torch.long) # TODO: check if long needed
+        return torch.tensor(list(s), dtype=torch.long)
     
     def sample_batched(self, batch_size):
         indices = self.random_indices(batch_size)

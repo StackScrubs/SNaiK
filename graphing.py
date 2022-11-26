@@ -9,7 +9,7 @@ class GraphType(str, Enum):
 
 class Grapher:
     def __init__(self) -> None:
-        self.NUMBER_OF_CHUNKS = 10
+        self.NUMBER_OF_CHUNKS = 64
             
         self.episodes = []
         self.scores = []

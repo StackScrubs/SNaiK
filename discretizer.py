@@ -80,11 +80,6 @@ class QuadDiscretizer(Discretizer):
         return (vec.x // self.quad_size) * self.n_axis_quads + (vec.y // self.quad_size)
     
     def discretize(self, observation) -> int:
-        # Make the state space as follows:
-        # * Precise head position.
-        # * Quad the apple is in.
-        # * Quad the tail is in.
-        # * Direction of snake head.
         dvec = lambda v: self._discretize_vec(v)
         qdvec = lambda v: self.__quad_discretize_vec(v)
         
@@ -116,7 +111,6 @@ class AngularDiscretizer(Discretizer):
         self.n_sectors = n_sectors
         self.sector_size = (2*pi)/n_sectors
         
-        # Space 
         max_dist = (self.grid_size-1)*2
         self.clamped_wall_dists = min(max_dist, 4)
         self.clamped_tail_dists = min(max_dist, 4) + 1 # collidable tail can be non-existent
@@ -139,11 +133,6 @@ class AngularDiscretizer(Discretizer):
         return int(src.angle_to(dst) // self.sector_size)
     
     def discretize(self, observation) -> int:
-        # Make the state space as follows:
-        # * Precise head position.
-        # * Direction of snake head.
-        # * Length and angle-ish to apple.
-        # * Length and angle-ish to tail.
         direction: Direction = observation["direction"]
         head_pos: Vec2 = observation["head"]
         svec = lambda v: self.__sectorize_angle_between_vecs(head_pos, v)

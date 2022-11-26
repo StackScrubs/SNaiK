@@ -180,7 +180,7 @@ class DQNAgent(Agent):
         self.T = 1100
         self.epsilon_start = 0.9
         self.epsilon_end = 0.1
-        self.epsilon_decay = 500 # 200 a wee bit extreme, needs tweaking
+        self.epsilon_decay = 500
 
         self.policy_net = self.nn
         self.target_net = deepcopy(self.nn)
