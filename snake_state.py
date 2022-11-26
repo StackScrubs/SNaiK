@@ -192,7 +192,6 @@ class SnakeState:
     def has_won(self):
         return len(self.__snake) >= self.__grid.size**2
 
-    # Snakes relative turn direction, converted to constant env direction
     def turn_left(self):
         self.__direction = self.__direction.turn_left()
 
@@ -205,6 +204,9 @@ class SnakeState:
         
         ate = self._snake_step()
         return ate
+    
+    def __kill(self):
+        self.__alive = False
 
     def _snake_step(self) -> bool:
         head = self.__snake[0]
@@ -214,7 +216,7 @@ class SnakeState:
             Vec2(0, 0),
             Vec2(self.__grid.size - 1, self.__grid.size - 1)
         ):
-            self.__alive = False
+            self.__kill()
             return
 
         hit = self.__grid.get_cell(next_head_pos)
@@ -223,7 +225,7 @@ class SnakeState:
         hit_deadly = hit_any and not ate
 
         if hit_deadly:
-            self.__alive = False
+            self.__kill()
             return
 
         if ate:

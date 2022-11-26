@@ -13,7 +13,7 @@ class StatsType(str, Enum):
 
 class Grapher:
     def __init__(self) -> None:
-        self.NUMBER_OF_CHUNKS = 10
+        self.NUMBER_OF_CHUNKS = 3
             
         self.episodes = []
         self.scores = []
@@ -25,16 +25,25 @@ class Grapher:
     def _get_chunk_size(self):
         return floor(len(self.episodes) / self.NUMBER_OF_CHUNKS)
 
+    @staticmethod
+    def __chunkize(l: list, chunk_size: int):
+        return (l[i:i+chunk_size] for i in range(0, len(l), chunk_size))
     
-    def _reduce_to_avg(self, list: list, chunk_size: int):
+    def _reduce_to_avg(self, l: list, chunk_size: int):
         """Divides a long list of values into chunks and finds the average value of each chunk."""
-        chunks = [list[i:i + chunk_size] for i in range(0, len(list), chunk_size)]
-        return [sum(chunks[i]) / len(chunks[i]) for i in range(len(chunks))]
+        chunks = self.__chunkize(l, chunk_size)
+        return [sum(chunk) / len(chunk) for chunk in chunks]
     
-    def _reduce_to_best(self, list: list, chunk_size: int):
+    def _reduce_to_best(self, l: list, chunk_size: int):
         """Divides a long list of values into chunks and finds the best value in each chunk."""
-        chunks = [list[i:i + chunk_size] for i in range(0, len(list), chunk_size)]
-        return [max(chunks[i]) for i in range(len(chunks) - 1)]
+        chunks = self.__chunkize(l, chunk_size)
+        return [max(chunk) for chunk in chunks]
+    
+    def __reduce(self, graph_type: StatsType, chunk_size):
+        if graph_type == StatsType.BEST:
+            return self._reduce_to_best(self.episodes, chunk_size), self._reduce_to_best(self.scores, chunk_size)
+        elif graph_type == StatsType.AVG:
+            return self._reduce_to_avg(self.episodes, chunk_size), self._reduce_to_avg(self.scores, chunk_size)
     
     def _bullet_list(self, prefix:str, info: dict):
         res = ""
@@ -44,12 +53,6 @@ class Grapher:
             else:
                 res += f"{prefix}{key}: {info[key]}\n"
         return res
-
-    def __reduce(self, graph_type: StatsType, chunk_size):
-        if graph_type == StatsType.BEST:
-            return self._reduce_to_best(self.episodes, chunk_size), self._reduce_to_best(self.scores, chunk_size)
-        elif graph_type == StatsType.AVG:
-            return self._reduce_to_avg(self.episodes, chunk_size), self._reduce_to_avg(self.scores, chunk_size)
 
     def get_score_graph(self, graph_type: StatsType, base_path, card_info) -> str:        
         episodes, scores = self.__reduce(graph_type, self._get_chunk_size())

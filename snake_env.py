@@ -3,7 +3,6 @@ import gymnasium as gym
 from gymnasium import spaces
 from snake_state import SnakeState, GridCellType
 from collections.abc import Mapping
-import datetime
 import numpy as np
 
 class LazyDict(Mapping):
@@ -42,7 +41,7 @@ class LazyDict(Mapping):
 class SnakeEnv(gym.Env):
     metadata = {
         "render_modes": [None, "human"],
-        "render_fps": 60
+        "render_fps": 16
     }
 
     def __init__(self, render_mode=None, seed=None, size=8):
@@ -54,17 +53,17 @@ class SnakeEnv(gym.Env):
         self.window_size = 1024
         self.seed = seed
         self.steps = 0
+        self.max_steps = size**2
         self.score = 0
 
-        # Target's location, Neo's location and length
         self.observation_space = spaces.Dict({
             "head": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
             "direction": spaces.Discrete(4),
             "tail": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
             "apple": spaces.Box(0, self.size - 1, shape=(2, ), dtype=int),
             "length": spaces.Box(0, self.size, dtype=int),
-            "grid": spaces.Box(0, self.size, shape=(2, ), dtype=int),
             "collidables": spaces.Box(0, self.size**2, shape=(1, ), dtype=int),
+            "grid": spaces.Box(0, self.size - 1, shape=(self.size*self.size, ))
         })
 
         # Action space for turning left or right, or remaining idle
@@ -94,20 +93,26 @@ class SnakeEnv(gym.Env):
         
         self.steps += 1
         reward = 0
-        if ate:
+        truncated = not self.state.is_alive
+        terminated = won
+        
+        if won:
+            reward = 1000 * self.state.snake_length
+            terminated = True
+        elif not self.state.is_alive:
+            reward = -500
+        elif ate:
             self.score += 1
-            reward = 1 / self.steps
+            reward = 100 * self.state.snake_length
             self.steps = 0
+        elif self.steps >= self.max_steps:
+            truncated = True
         else:
             new_dist_to_apple = self.state.head_position.manhattan_dist(self.state.apple_position)
             reward = dist_to_apple - new_dist_to_apple
-        if won:
-            reward = 50
-        if not self.state.is_alive:
-            reward = -50
-            
-        terminated = won
-        truncated = not self.state.is_alive
+            if reward < 0:
+                reward *= 10
+
         info = self.score
 
         self._render()
@@ -136,6 +141,7 @@ class SnakeEnv(gym.Env):
         self.state = SnakeState(self.size, seed)
         self.score = 0
         self.death_counter += 1
+        self.steps = 0
         self._render()
         return self._get_obs()
 
@@ -179,7 +185,6 @@ class SnakeEnv(gym.Env):
         self.screen.blit(img, (20, 20))
         pygame.display.update()
         pygame.event.pump()
-        self.clock.tick(self.metadata["render_fps"])
         self.last_render_ms = pygame.time.get_ticks()
 
     def _get_square_display(self, cell_type):
