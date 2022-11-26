@@ -114,17 +114,26 @@ class AgentWithContext:
     async def __parse_cmd(self):
         from time import time
         while True:
-            cmd = await ainput("Write 'save', 'graph' or 'info': ")
+            cmd = await ainput("Write 'save', 'graph avg/best' or 'info': ")
+            
             if cmd == "save":
                 print("Saving current model state...")
                 file = self.to_file(time())
                 print(f"Saved model state as \"{file}\".")
-            elif cmd == "graph":
+            
+            elif cmd == "graph avg":
                 print("Creating performance graph of current learning...")
-                file = self.grapher.avg_score_graph(".", time(), self.info)
+                file = self.grapher.get_score_graph("avg", ".", time(), self.info)
                 print(f"Graph created and saved as \"{file}\".")
+            
+            elif cmd == "graph best":
+                print("Creating performance graph of current learning...")
+                file = self.grapher.get_score_graph("best", ".", time(), self.info)
+                print(f"Graph created and saved as \"{file}\".")
+            
             elif cmd == "info":
                 print(self.info)
+            
             else:
                 await aprint(f"Invalid command '{cmd}'.")
     

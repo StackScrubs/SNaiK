@@ -1,6 +1,11 @@
 from matplotlib import pyplot as plt
 from matplotlib.offsetbox import AnchoredText
 from math import floor
+from enum import Enum
+
+class GraphType(str, Enum):
+    AVG = "avg"
+    BEST = "best"
 
 class Grapher:
     def __init__(self) -> None:
@@ -12,13 +17,16 @@ class Grapher:
     def update(self, episode, score):
         self.episodes.append(episode), 
         self.scores.append(score),
-        
-        
     
     def _reduce_to_avg(self, list: list, chunk_size: int):
         """Divides a long list of values into chunks and finds the average value of each chunk."""
         chunks = [list[i:i + chunk_size] for i in range(0, len(list), chunk_size)]
         return [sum(chunks[i]) / len(chunks[i]) for i in range(len(chunks))]
+    
+    def _reduce_to_best(self, list: list, chunk_size: int):
+        """Divides a long list of values into chunks and finds the best value in each chunk."""
+        chunks = [list[i:i + chunk_size] for i in range(0, len(list), chunk_size)]
+        return [max(chunks[i]) for i in range(len(chunks) - 1)]
     
     def _bullet_list(self, prefix:str, t: dict):
         res = ""
@@ -28,11 +36,16 @@ class Grapher:
             else:
                 res += f"{prefix}{i}: {t[i]}\n"
         return res
-    
-    def avg_score_graph(self, base_path, file_name, card_info) -> str:
+
+    def get_score_graph(self, type, base_path, file_name, card_info) -> str:
         chunk_size = floor(len(self.episodes) / self.NUMBER_OF_CHUNKS)
-        episode_plots = self._reduce_to_avg(self.episodes, chunk_size)
-        score_plots = self._reduce_to_avg(self.scores, chunk_size)
+        
+        if type == GraphType.BEST:
+            episode_plots = self._reduce_to_best(self.episodes, chunk_size)
+            score_plots = self._reduce_to_best(self.scores, chunk_size)
+        elif type == GraphType.AVG:
+            episode_plots = self._reduce_to_avg(self.episodes, chunk_size)
+            score_plots = self._reduce_to_avg(self.scores, chunk_size)
         
         _, ax = plt.subplots()
         at = AnchoredText(
@@ -44,11 +57,11 @@ class Grapher:
         ax.add_artist(at)
         
         plt.plot(episode_plots, score_plots)
-        plt.title("Score over episodes")
+        plt.title(f"{type} score over episodes")
         plt.xlabel("Episode")
         plt.ylabel("Score")
-        file_name = f"{base_path}/score_graph_{file_name}.png"
-        plt.legend()
+        file_name = f"{base_path}/{type}_score_graph_{file_name}.png"
         plt.savefig(file_name)
         
         return file_name
+    
