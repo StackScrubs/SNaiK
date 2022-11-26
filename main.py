@@ -10,9 +10,9 @@ from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
 from dqn import ModelType, LinearDQN, ConvolutionalDQN
-import sys
 from graphing import StatsType
 
+import sys
 import click
 import asyncio
 

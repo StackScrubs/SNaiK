@@ -20,14 +20,14 @@ class ReplayMemory:
         self.__rewards[self.__write_index] = reward
         self.__write_index = (self.__write_index + 1) % self.__cap
     
-    def random_indices(self, batch_size):
+    def get_random_indices(self, batch_size):
         s = set()
         while len(s) < batch_size:
             s.add(randint(0, self.__len - 1))
         return torch.tensor(list(s), dtype=torch.long)
     
     def sample_batched(self, batch_size):
-        indices = self.random_indices(batch_size)
+        indices = self.get_random_indices(batch_size)
         states = torch.index_select(self.__states, 0, indices)
         new_states = torch.index_select(self.__new_states, 0, indices)
         actions = torch.index_select(self.__actions, 0, indices)

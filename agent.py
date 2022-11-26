@@ -179,7 +179,7 @@ class DQNAgent(Agent):
         self.__channels = 3
         self.__memory_size = 100_000
         self.__batch_size = 256
-        self.__T = 1100
+        self.__weight_copy_interval = 1100
         self.__epsilon_start = 0.9
         self.__epsilon_end = 0.1
         self.__epsilon_decay = 500
@@ -212,7 +212,7 @@ class DQNAgent(Agent):
     def update(self):
         observation, reward, terminated, truncated, info = self.__experience_replay()
         self.__train_policy_net()
-        self.__step()
+        self.__maybe_copy_weights()
         return observation, reward, terminated, truncated, info
 
     def __memorize(self, state: torch.Tensor, new_state: torch.Tensor, action: int, reward: int): 
@@ -254,9 +254,9 @@ class DQNAgent(Agent):
             param.grad.data.clamp(-1, 1)
         self.__optimizer.step()
 
-    def __step(self):
+    def __maybe_copy_weights(self):
         self.__steps += 1
-        if self.__steps % self.__T == 0:
+        if self.__steps % self.__weight_copy_interval == 0:
             self.__copy_policy_to_target()
 
     def __experience_replay(self, explore_only=False):
