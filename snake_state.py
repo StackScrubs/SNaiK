@@ -150,7 +150,7 @@ class SnakeState:
         self.__alive = True
         self.__apple = self.__grid.new_free_cell(GridCellType.APPLE)
         self.__direction = Direction(self.__random.randint(0, len(Direction.DIRECTIONS) - 1))
-        self.__to_grow = 0
+        self.__to_grow = 2
 
     @property
     def is_alive(self) -> bool:

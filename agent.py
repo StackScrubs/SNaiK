@@ -180,6 +180,7 @@ class DQNAgent(Agent):
         self.__memory_size = 100_000
         self.__batch_size = 256
         self.__weight_copy_interval = 1100
+        self.__training_interval = 4
         self.__epsilon_start = 0.9
         self.__epsilon_end = 0.1
         self.__epsilon_decay = 500
@@ -211,6 +212,7 @@ class DQNAgent(Agent):
 
     def update(self):
         observation, reward, terminated, truncated, info = self.__experience_replay()
+        self.__steps += 1
         self.__train_policy_net()
         self.__maybe_copy_weights()
         return observation, reward, terminated, truncated, info
@@ -235,6 +237,9 @@ class DQNAgent(Agent):
         return torch.argmax(action_q_vals).item()
 
     def __train_policy_net(self):
+        if self.__steps % self.__training_interval != 0:
+            return
+        
         states, new_states, actions, rewards = self.__replay_memory.sample_batched(self.__batch_size)
         
         # Reshape the states so they fit in the DQN model
@@ -255,7 +260,6 @@ class DQNAgent(Agent):
         self.__optimizer.step()
 
     def __maybe_copy_weights(self):
-        self.__steps += 1
         if self.__steps % self.__weight_copy_interval == 0:
             self.__copy_policy_to_target()
 
