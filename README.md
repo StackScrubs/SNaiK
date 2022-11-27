@@ -26,20 +26,22 @@ Run SNaiK via a command line. For a detalied guide, you can run `--help` for eve
 ### New run
 Minimal options:
 ```
-python main.py new {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS}
-```
-#### Agent: random
+python main.py new {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS}  
+```      
+
+Agent: random
 | AGENT TYPE  | AGENT TYPE ARGUMENTS  | DESCRIPTON |
 |---|---|---|
 | N/A  | N/A | N/A |
 
-#### Agent: dqn
+
+Agent: dqn
 | AGENT TYPE  | AGENT TYPE ARGUMENTS  | DESCRIPTON |
 |---|---|---|
 | convolutional  | N/A | dqn using a convolutional network |
 | linear  | N/A | dqn using a linear network |
 
-#### Agent: qlearning
+Agent: qlearning
 | AGENT TYPE  | AGENT TYPE ARGUMENTS  | DESCRIPTON |
 |---|---|---|
 | full  | N/A | qlearning with maximum state space |
@@ -52,4 +54,11 @@ All options:
 ```
 python main.py new -a -g -sz -e -r -s {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS} 
 ```
-
+|  PARAMTER | DESCRIPTION  |
+|---|---|
+| -a `num`|  sets the learning rate of the agent to `num`. Must be in `[0,1]`. Default is `0.1`|
+| -g  `num`|  sets the gamma value of the agent to `num`. Must be in `[0,1]`. Default is `0.9`|
+|  -sz `num`|  sets the grid size to `num x num`. Default is `4` |
+|  -e `num`| sets the amount of episodes the agent should do before terminating. Default is `inf` |
+|  -r |  ui |
+|  -s `num` |  io |
