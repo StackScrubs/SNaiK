@@ -5,8 +5,8 @@ Machine learning project made by third year computer science bachelors Magnus He
 The goal of the project was to create an enviroment for a snake game, and implement three types of agents to controll the snake:
 
 * Random agent: Actions are chosen at random
-* Q-learning agent: Actions are chosen through Q-learing
 * DQN agent: Actions are chosen through Deep Q-learning (DQN)
+* Q-learning agent: Actions are chosen through Q-learing
 
 Further, the group were to gather data and create graphs of the different models' perfomance, and compare the results.
 
@@ -28,6 +28,24 @@ Minimal options:
 ```
 python main.py new {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS}
 ```
+#### Agent: random
+| AGENT TYPE  | AGENT TYPE ARGUMENTS  | DESCRIPTON |
+|---|---|---|
+| N/A  | N/A | N/A |
+
+#### Agent: dqn
+| AGENT TYPE  | AGENT TYPE ARGUMENTS  | DESCRIPTON |
+|---|---|---|
+| convolutional  | N/A | dqn using a convolutional network |
+| linear  | N/A | dqn using a linear network |
+
+#### Agent: qlearning
+| AGENT TYPE  | AGENT TYPE ARGUMENTS  | DESCRIPTON |
+|---|---|---|
+| full  | N/A | qlearning with maximum state space |
+| angular  | -ns `num` | qlearning where state space is divided into `num` sectors |
+| quad  | -qs `num`|  qlearning where state space is divided into `num x num` quads |
+
 
 
 All options:
