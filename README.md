@@ -5,6 +5,7 @@ Machine learning project for the 5th semester [applied machine learning course (
  * [Norbert Arkadiusz Görke](https://github.com/norgor)
  * [Christian Ryddheim Dahlin](https://github.com/chrisryda)
 
+<br >
 
 ## Goal 🥅
 The goal of the project was to create an enviroment for a snake game, and implement following types of machine learning agents to control the snake:
@@ -64,8 +65,8 @@ Available agents:
 | Agent Argument  | Agent Option  | Description |
 |---|---|---|
 | full  | N/A | qlearning with maximum state space |
-| angular  | -ns `num` | qlearning where the state space is divided into `num` sectors |
-| quad  | -qs `num`|  qlearning where the state space is divided into `num x num` quads |
+| angular  | -ns `int` | qlearning where the state space is divided into `int` sectors |
+| quad  | -qs `int`|  qlearning where the state space is divided into `int x int` quads |
 
 ### Load run
 Allows you to load and continue a previously saved SNaiK run.
