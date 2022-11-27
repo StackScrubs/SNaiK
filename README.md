@@ -64,4 +64,14 @@ python main.py new -a -g -sz -e -s -r {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS}
 |  -r | enables rendering of the snake |
 
 ### Load run
-`python main.py load <filename>.qbf`
+Allows you to continue a previously saved SNaiK run.
+Minimal options:
+```
+python main.py load <filename>.qbf
+```
+
+All options:
+```
+python main.py load -r -e <filename>.qbf
+```
+For description of options, see table above.
