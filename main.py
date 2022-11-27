@@ -87,6 +87,7 @@ class AgentWithContext:
     ctx: Context
     agent: Agent
     grapher = Grapher()
+
     
     @staticmethod
     def from_file(file_path) -> Self:
@@ -108,11 +109,11 @@ class AgentWithContext:
             pretty_agent = RenderingAgentDecorator(self.ctx.render_env, self.agent)
         agent_runner = AgentRunner(pretty_agent, self.grapher, self.ctx)
         await asyncio.gather(
-            self.__parse_cmd(),
+            self.__parse_cmd(agent_runner),
             agent_runner.run(),
         )
     
-    async def __parse_cmd(self):
+    async def __parse_cmd(self, agent_runner: AgentRunner):
         while True:
             cmd = await ainput("Write 'save', 'info' or 'exit': ")
             if cmd == "save":
@@ -121,8 +122,8 @@ class AgentWithContext:
                 print(self.info)
             elif cmd == "exit":
                 print("Exiting...")
-                sys.tracebacklimit = 0
-                sys.exit(1)
+                agent_runner.stop()
+                return
             else:
                 await aprint(f"Invalid command '{cmd}'.")
 
@@ -170,21 +171,25 @@ class AgentRunner:
         self.ctx = ctx
         self.grapher = grapher
         self.env = ctx.env
+        self.exit = False
+
+    def stop(self):
+        self.exit = True
 
     async def run(self):
         from time import time
 
         episode, score = 0, 0
         self.agent.initialize()
-        while episode != self.ctx.episodes:
+        while not self.exit and episode != self.ctx.episodes:
             episode += 1
             score = self.agent.run_episode()
             
             self.grapher.update(episode, score)
             await asyncio.sleep(0)
 
-        print(f"\nFinished running {self.ctx.episodes} episodes")
-        print("Write 'save', 'graph' or 'info': ", end="")
+        if self.ctx.episodes != -1:
+            print(f"\nFinished running {self.ctx.episodes} episodes")
         
     @property
     def info(self) -> dict:
