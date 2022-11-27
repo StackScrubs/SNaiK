@@ -4,7 +4,7 @@ Machine learning project made by third year computer science bachelors Magnus He
 ## Project
 The goal of the project was to create an enviroment for a snake game, and implement three ways for the agent (the snake) to play:
 
-* Random action-choice
+* Through random action-choice
 * Through Q-learing
 * Through Deep Q-learning (DQN)
 
