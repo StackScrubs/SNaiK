@@ -86,15 +86,6 @@ class Grapher:
 
         return values
     
-    @staticmethod
-    def _simple_moving_maximum_og(l: list):
-        sample_size = len(l) // 20
-        maxs = []
-        for i in range(len(l) - (sample_size - 1)):
-            sample = l[i:i+sample_size]
-            maxs.append(max(sample))
-        return maxs
-    
     def __reduce(self, graph_type: StatsType):
         values = None
         if graph_type == StatsType.BEST:
