@@ -98,7 +98,14 @@ Prints info about the running instance in the terminal.
 ### save 
 Allows you to save the running instance in different ways. 
 
-#### save &#8594; model
-Saves an image of the running instance that can be loaded and resumed at a later time by using `python main load <filename>.qbf`  
+* #### save &#8594; model
+  * Saves an image of the running instance that can be loaded and resumed at a later time by using `python main load <filename>.qbf`
 
+* #### save &#8594; stats
+  * Saves the statistics of the running instance in a JSON-file.
+  
+* #### save &#8594; graph
+  * Creates a graph of the running instance, showcasing score over episodes. There are two options:
+    * graph &#8594; best: graphs the best scores over epsiodes
+    * graph &#8594; avg: graphs the average scores over epsiodes
 
