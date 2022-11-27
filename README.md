@@ -16,8 +16,8 @@ You need Python 3.10 and the packages specified in `requirements.txt` installed.
 ## Installation
 Clone the project, and in the root folder of the project (~/(...)/SNaiK) run the follwoing command:
 
-'''
+```
 pip install -r requirements.txt
-'''
+```
 
 ## Run SNaiK
