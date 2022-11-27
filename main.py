@@ -185,7 +185,7 @@ class AgentRunner:
             episode += 1
             score = self.agent.run_episode()
             
-            self.grapher.update(episode, score)
+            self.grapher.update(score)
             await asyncio.sleep(0)
 
         if self.ctx.episodes != -1:
