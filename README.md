@@ -14,7 +14,7 @@ Further, the group were to gather data and create graphs of the different models
 You need Python 3.10 and the packages specified in `requirements.txt` installed. You can download the packages however you like, but this installation-guide will do so through the Python package-manager `pip`.  
 
 ## Installation
-Clone the project, and in the root folder of the project (~/(...)/SNaiK) run the follwoing command:
+Clone the project, and in the root folder of the project (~/.../SNaiK) run the following command:
 
 ```
 pip install -r requirements.txt
