@@ -28,18 +28,21 @@ Run SNaiK via a command line. For a detalied guide, you can run `--help` for eve
 
 
 ### New run
-Minimal options:
 ```
-python main.py new {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS}  
+python main.py new [options] <agent> <agent argument> <agent options>  
 ```      
 
-Agent: random
+Available agents:
+ * [random](random-agent)
+ * [dqn](dqn-agent)
+ * [qlearning](q-learning-agent)
+
+#### Random Agent
 | AGENT TYPE  | AGENT TYPE ARGUMENTS  | DESCRIPTON |
 |---|---|---|
 | N/A  | N/A | N/A |
 
-
-Agent: dqn
+#### DQN Agent
 | AGENT TYPE  | AGENT TYPE ARGUMENTS  | DESCRIPTON |
 |---|---|---|
 | convolutional  | N/A | dqn using a convolutional network |
@@ -47,7 +50,7 @@ Agent: dqn
 
 
 
-Agent: qlearning
+#### Q-Learning Agent
 | AGENT TYPE  | AGENT TYPE ARGUMENTS  | DESCRIPTON |
 |---|---|---|
 | full  | N/A | qlearning with maximum state space |
