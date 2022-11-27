@@ -16,9 +16,9 @@ class AgentContext:
         return SnakeEnv(render_mode=None, seed=self.seed, size=self.size)
 
 class Context:
-    def __init__(self, alpha: float, gamma: float, size: int, episodes: int, seed: int | None, render: bool):
+    def __init__(self, alpha: float, gamma: float, size: int, max_episodes: int, seed: int | None, render: bool):
         self.render = render
-        self.episodes = episodes
+        self.max_episodes = max_episodes
         
         self.__agent_context = AgentContext(alpha=alpha, gamma=gamma, size=size, seed=seed)
     
@@ -58,6 +58,8 @@ class Context:
             "alpha": self.alpha,
             "gamma": self.gamma,
             "grid_size": self.size,
+            "seed": self.seed,
+            "max_episodes": self.max_episodes if not self.max_episodes == -1 else "inf",
         }
         
     def __getstate__(self):

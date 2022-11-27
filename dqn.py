@@ -5,6 +5,9 @@ from enum import Enum
 class ModelType(str, Enum):
     LINEAR = "linear"
     CONVOLUTIONAL = "convolutional"
+    
+    def __str__(self):
+        return self.value
 
 def get_next_odd_number(x: int):
     return x+(x % 2 + 1)%2

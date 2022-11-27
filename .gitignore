@@ -133,3 +133,5 @@ dmypy.json
 
 # SNaiK
 *.qbf
+*.json
+*.png

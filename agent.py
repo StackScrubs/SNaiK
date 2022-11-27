@@ -48,7 +48,7 @@ class Agent:
             if terminated or truncated:
                 self.observation = self.env.reset()
                 return info
-            
+
     @property
     def info(self) -> dict:
         return {
