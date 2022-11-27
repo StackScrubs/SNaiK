@@ -1,5 +1,5 @@
 # SNaiK
-Machine learning project made by third year computer science bachelors Magnus Hektoen Steensland, Tommy René Sætre, Norbert Arkadiusz Gõrke and Christian Ryddheim Dahlin.
+Machine learning project made by third year computer science bachelors Magnus Hektoen Steensland, Tommy René Sætre, Norbert Arkadiusz Grke and Christian Ryddheim Dahlin.
 
 
 ## Project
