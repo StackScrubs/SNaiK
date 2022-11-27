@@ -54,7 +54,7 @@ All options:
 ```
 python main.py new -a -g -sz -e -s -r {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS} 
 ```
-|  PARAMTER | DESCRIPTION  |
+|  OPTION | DESCRIPTION  |
 |---|---|
 | -a `num`|  sets the learning rate of the agent to `num`. Must be in `[0,1]`. Default is `0.1`|
 | -g  `num`|  sets the gamma value of the agent to `num`. Must be in `[0,1]`. Default is `0.9`|
@@ -65,6 +65,9 @@ python main.py new -a -g -sz -e -s -r {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS}
 
 ### Load run
 Allows you to continue a previously saved SNaiK run.
+
+
+
 Minimal options:
 ```
 python main.py load <filename>.qbf
