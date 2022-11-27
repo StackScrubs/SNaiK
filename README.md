@@ -76,7 +76,7 @@ python main.py load [options] <filename>.qbf
 #### Options
 |  Option | Description  |
 |---|---|
-|  -e `num`| Sets the number of episodes the agent should do before stopping. Default is `inf`. |
+|  -e `int`| Sets the number of episodes the agent should do before stopping. Default is `inf`. |
 |  -r | Enables rendering of the snake. |
 
 ## Interactive CLI
