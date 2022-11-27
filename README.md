@@ -52,7 +52,7 @@ Agent: qlearning
 
 All options:
 ```
-python main.py new -a -g -sz -e -r -s {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS} 
+python main.py new -a -g -sz -e -s -r {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS} 
 ```
 |  PARAMTER | DESCRIPTION  |
 |---|---|
@@ -60,5 +60,5 @@ python main.py new -a -g -sz -e -r -s {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS}
 | -g  `num`|  sets the gamma value of the agent to `num`. Must be in `[0,1]`. Default is `0.9`|
 |  -sz `num`|  sets the grid size to `num x num`. Default is `4` |
 |  -e `num`| sets the amount of episodes the agent should do before terminating. Default is `inf` |
-|  -r |  ui |
-|  -s `num` |  io |
+|  -s `num` |  sets the seed to `num`. A seed make the apple spawn in a pattern. |
+|  -r | enables rendering of the snake |
