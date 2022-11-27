@@ -21,7 +21,7 @@ pip install -r requirements.txt
 ```
 
 ## Run SNaiK
-Run SNaiK is via a command line. For a detalied guide, you can run `--help` for every option, command or argument added after typing `python main.py` 
+Run SNaiK via a command line. For a detalied guide, you can run `--help` for every option, command or argument added after typing `python main.py`.
 
 ### New run
 Minimal options:
@@ -43,8 +43,8 @@ python main.py new {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS}
 | AGENT TYPE  | AGENT TYPE ARGUMENTS  | DESCRIPTON |
 |---|---|---|
 | full  | N/A | qlearning with maximum state space |
-| angular  | -ns `num` | qlearning where state space is divided into `num` sectors |
-| quad  | -qs `num`|  qlearning where state space is divided into `num x num` quads |
+| angular  | -ns `num` | qlearning where the state space is divided into `num` sectors |
+| quad  | -qs `num`|  qlearning where the state space is divided into `num x num` quads |
 
 
 
