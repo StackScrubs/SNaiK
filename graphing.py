@@ -14,36 +14,85 @@ class StatsType(str, Enum):
 class Grapher:
     def __init__(self) -> None:
         self.NUMBER_OF_CHUNKS = 3
-            
-        self.episodes = []
         self.scores = []
         
-    def update(self, episode, score):
-        self.episodes.append(episode), 
+    def update(self, score):
         self.scores.append(score),
-
-    def _get_chunk_size(self):
-        return floor(len(self.episodes) / self.NUMBER_OF_CHUNKS)
 
     @staticmethod
     def __chunkize(l: list, chunk_size: int):
         return (l[i:i+chunk_size] for i in range(0, len(l), chunk_size))
     
-    def _reduce_to_avg(self, l: list, chunk_size: int):
-        """Divides a long list of values into chunks and finds the average value of each chunk."""
-        chunks = self.__chunkize(l, chunk_size)
-        return [sum(chunk) / len(chunk) for chunk in chunks]
+    @staticmethod
+    def _simple_moving_average(l: list):
+        sample_size = len(l) // 100
+        sample = []
+        current_avg = 0
+        values = []
+        index = 0
+        for i in range(len(l)):
+            new_subsample = l[i] / sample_size
+            if i < sample_size:
+                current_avg += new_subsample
+                sample.append(new_subsample)
+                continue
+                
+            old_subsample = sample[index]
+                
+            sample[index] = new_subsample
+            index = (index + 1) % sample_size  
+            
+            current_avg -= old_subsample
+            current_avg += new_subsample
+            
+            values.append(current_avg)
+
+        return values
     
-    def _reduce_to_best(self, l: list, chunk_size: int):
-        """Divides a long list of values into chunks and finds the best value in each chunk."""
-        chunks = self.__chunkize(l, chunk_size)
-        return [max(chunk) for chunk in chunks]
+    @staticmethod
+    def _simple_moving_maximum(l: list):
+        sample_size = len(l) // 50
+        sorted_keys = []
+        subsample_counts = {}
+        sample = []
+        values = []
+        index = 0
+        for i in range(len(l)):
+            new_subsample = l[i]
+            
+            # Increment subsample count, or add it if it doesn't exist
+            if new_subsample not in subsample_counts:
+                subsample_counts[new_subsample] = 0
+                sorted_keys = sorted(sorted_keys + [new_subsample], reverse=True)
+            subsample_counts[new_subsample] += 1
+            
+            if i < sample_size:
+                sample.append(new_subsample)
+                continue
+            
+            # Replace the old subsample with the new subsample and decrement
+            # it's count
+            old_subsample = sample[index]
+            subsample_counts[old_subsample] -= 1
+            sample[index] = new_subsample
+            index = (index + 1) % sample_size  
+
+            # Find greatest key that has an occurence > 0 and add it to values
+            for key in sorted_keys:
+                count = subsample_counts[key]
+                if count > 0:
+                    values.append(key)
+                    break
+
+        return values
     
-    def __reduce(self, graph_type: StatsType, chunk_size):
+    def __reduce(self, graph_type: StatsType):
+        values = None
         if graph_type == StatsType.BEST:
-            return self._reduce_to_best(self.episodes, chunk_size), self._reduce_to_best(self.scores, chunk_size)
+            values = self._simple_moving_maximum(self.scores)
         elif graph_type == StatsType.AVG:
-            return self._reduce_to_avg(self.episodes, chunk_size), self._reduce_to_avg(self.scores, chunk_size)
+            values = self._simple_moving_average(self.scores)
+        return list(range(1, len(values)+1)), values
     
     def _bullet_list(self, prefix:str, info: dict):
         res = ""
@@ -55,7 +104,7 @@ class Grapher:
         return res
 
     def get_score_graph(self, graph_type: StatsType, base_path, card_info) -> str:        
-        episodes, scores = self.__reduce(graph_type, self._get_chunk_size())
+        episodes, scores = self.__reduce(graph_type)
         
         _, ax = plt.subplots()
         at = AnchoredText(
@@ -92,7 +141,7 @@ class Grapher:
     def save_stats(self, graph_type: StatsType, stats_for: dict):
         from json import dump
 
-        episodes, scores = self.__reduce(graph_type, self._get_chunk_size())
+        episodes, scores = self.__reduce(graph_type)
         data = {
             "label": ', '.join([str(x) for x in Grapher._extract_dict_values(stats_for)]),
             "episodes": episodes,
