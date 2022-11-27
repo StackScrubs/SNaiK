@@ -26,7 +26,6 @@ class Agent:
         self.env = ctx.env
         self.observation = ctx.env.reset()
         self.reward = 0
-        self.episodes = 0
     
     def get_optimal_action(self, observation) -> int:
         """Returns the optimal action for the provided observation"""
@@ -46,16 +45,14 @@ class Agent:
     def run_episode(self):
         while True:
             self.observation, self.reward, terminated, truncated, info = self.update()
-            self.episodes += 1
             if terminated or truncated:
                 self.observation = self.env.reset()
                 return info
-            
+
     @property
     def info(self) -> dict:
         return {
             "type": self.TYPE,
-            "episodes": self.episodes
         }
 
 class RenderingAgentDecorator(Agent):

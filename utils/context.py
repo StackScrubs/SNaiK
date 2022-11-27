@@ -54,12 +54,12 @@ class Context:
 
     @cached_property
     def info(self) -> dict:
-        max_episodes = self.max_episodes if not self.max_episodes == -1 else "inf"
         return {
             "alpha": self.alpha,
             "gamma": self.gamma,
             "grid_size": self.size,
-            "max_episodes": max_episodes,
+            "seed": self.seed,
+            "max_episodes": self.max_episodes if not self.max_episodes == -1 else "inf",
         }
         
     def __getstate__(self):

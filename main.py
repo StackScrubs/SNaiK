@@ -10,9 +10,7 @@ from aioconsole import ainput, aprint
 from dataclasses import dataclass
 from discretizer import DiscretizerType, FullDiscretizer, QuadDiscretizer, AngularDiscretizer
 from dqn import ModelType, LinearDQN, ConvolutionalDQN
-from graphing import StatsType
 
-import sys
 import click
 import asyncio
 
@@ -29,7 +27,7 @@ def entry():
 
 @entry.command()
 @click.argument("file", type=str, required=True)
-@click.option("-e", "--episodes", type=int, required=False, default=-1)
+@click.option("-e", "--max-episodes", type=int, required=False, default=-1)
 @click.option("-r", "--render", required=False, is_flag=True)
 def load(file: str, max_episodes: int, render: bool):
     ac: AgentWithContext = AgentWithContext.from_file(file)
@@ -119,7 +117,7 @@ class AgentWithContext:
             if cmd == "save":
                 await self.__parse_save_cmd()
             elif cmd == "info":
-                print(self.info)
+                print(agent_runner.info)
             elif cmd == "exit":
                 print("Exiting...")
                 agent_runner.stop()
@@ -172,30 +170,28 @@ class AgentRunner:
         self.grapher = grapher
         self.env = ctx.env
         self.exit = False
+        self.current_episode = 0
 
     def stop(self):
         self.exit = True
 
     async def run(self):
-        from time import time
-
-        episodes, score = 0, 0
         self.agent.initialize()
-        while not self.exit and episodes != self.ctx.max_episodes:
-            episodes += 1
+        while not self.exit and self.current_episode != self.ctx.max_episodes:
+            self.current_episode += 1
             score = self.agent.run_episode()
             
             self.grapher.update(score)
             await asyncio.sleep(0)
 
-        if episodes == self.ctx.max_episodes:
-            print(f"\nFinished running {self.ctx.max_episodes} episodes")
+        print(f"\nStopped running episodes. Ran a total of {self.current_episode} episodes")
         
     @property
     def info(self) -> dict:
         return {
             **self.ctx.info,
             **self.agent.info,
+            "current_episode": self.current_episode
         }
 
 if __name__ == "__main__":
