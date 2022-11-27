@@ -3,7 +3,8 @@ from matplotlib.offsetbox import AnchoredText
 from math import floor
 from time import time
 from enum import Enum
-from numba import jit
+from numba import njit
+from numba.typed import List
 
 class StatsType(str, Enum):
     AVG = "avg"
@@ -16,8 +17,8 @@ class Grapher:
     def __init__(self) -> None:
         self.NUMBER_OF_CHUNKS = 3
             
-        self.episodes = []
-        self.scores = []
+        self.episodes = List()
+        self.scores = List()
         
     def update(self, episode, score):
         self.episodes.append(episode), 
@@ -31,7 +32,7 @@ class Grapher:
         return (l[i:i+chunk_size] for i in range(0, len(l), chunk_size))
     
     @staticmethod
-    @jit
+    @njit
     def _simple_moving_average(l: list):
         sample_size = len(l) // 100
         avgs = []
@@ -41,7 +42,7 @@ class Grapher:
         return avgs
     
     @staticmethod
-    @jit
+    @njit
     def _simple_moving_maximum(l: list):
         sample_size = len(l) // 20
         maxs = []
