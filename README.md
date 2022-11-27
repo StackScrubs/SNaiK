@@ -60,5 +60,8 @@ python main.py new -a -g -sz -e -s -r {AGENT} {AGENT TYPE} {AGENT TYPE ARUMENTS}
 | -g  `num`|  sets the gamma value of the agent to `num`. Must be in `[0,1]`. Default is `0.9`|
 |  -sz `num`|  sets the grid size to `num x num`. Default is `4` |
 |  -e `num`| sets the amount of episodes the agent should do before terminating. Default is `inf` |
-|  -s `num` |  sets the seed to `num`. A seed make the apple spawn in a pattern. Default is `None`|
+|  -s `num` |  sets the seed to `num`. A seed makes the apple spawn in a pattern. Default is `None`|
 |  -r | enables rendering of the snake |
+
+### Load run
+`python main.py load <filename>.qbf`
