@@ -12,16 +12,22 @@ class ModelType(str, Enum):
 def get_next_odd_number(x: int):
     return x+(x % 2 + 1)%2
 
+def to_device(x):
+    return x.to("cuda", non_blocking=True)
+
+def from_device(x):
+    return x.to("cpu", non_blocking=True)
+
 class DQN(nn.Module):
     def __init__(self):
         super(DQN, self).__init__()
 
     def forward(self, state):
-        return self.logits(state)
+        return from_device(self.logits(to_device(state)))
 
     def loss(self, state, action, target_val):
-        actionq_values = torch.gather(self.logits(state), 1, action.view(-1, 1))
-        return nn.functional.mse_loss(actionq_values, target_val)
+        actionq_values = torch.gather(self.logits(to_device(state)), 1, to_device(action.view(-1, 1)))
+        return nn.functional.mse_loss(actionq_values, to_device(target_val))
 
     def init_layers(self):
         self.logits.apply(DQN.__init_layer_weights)
@@ -50,7 +56,7 @@ class LinearDQN(DQN):
             nn.ReLU(),
             nn.Linear(in_features * 3, 3),
             nn.Softmax(1)
-        )
+        ).cuda()
 
 class ConvolutionalDQN(DQN):
     TYPE = ModelType.CONVOLUTIONAL
@@ -60,7 +66,6 @@ class ConvolutionalDQN(DQN):
         
         kernel_size = get_next_odd_number(grid_size//2)
         out_channels = 3*24
-        
         self.logits = nn.Sequential(
             nn.Conv2d(3, out_channels, kernel_size=kernel_size, padding="same"),
             nn.BatchNorm2d(out_channels),
@@ -69,4 +74,4 @@ class ConvolutionalDQN(DQN):
             nn.ReLU(),
             nn.Linear(out_channels * grid_size**2, 3),
             nn.Softmax(1)
-        )
+        ).cuda()
